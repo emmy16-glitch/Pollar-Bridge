@@ -9,6 +9,7 @@ App: **Pollar-Bridge** (TestNet). Keys wired locally in gitignored `.env` files.
 | App wallet (funding/gas/distribution, GLOBAL) | `GAX6TIASCSIEMKO7NMMX2YAXQE7UCDYEGI7ZNQSTSOLF5LLYP4JG6HAK` | **10,000 XLM** via Friendbot — covers ~5,000+ user wallets |
 | Pilot user wallet | `GCREREDMI5J5QXBLSEO4MK2UZL3T7HU7AY5R4E2CORK7X4FWQJXDN466` | Funded (Friendbot) — `POST /v1/wallets/fund` → 409 already funded (correct) |
 | Pipeline-proof wallet (pilot-03) | `GDYKVMXYLJNEUSKN2LFUR4IFHX2IVOF7M3FSRK4RMIJLOPFDUESN52J5` | **201 `SERVER_USER_WALLET_CREATED`, funded:true** — sponsored on-chain |
+| Trustline-proof wallet (pilot-04) | `GANSKOAVA3UBATAP7MNCWTOYJBK4DYLL3LGW2CNLS2X6JSDJT7FOM3O6` | **USDC trustline present on-chain** — dashboard config confirmed working |
 
 Proven working against `https://server.api.pollar.xyz`:
 - `POST /v1/users/with-wallet` → creates user + sponsored wallet (Deferred model)
