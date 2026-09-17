@@ -29,7 +29,7 @@ export interface Corridor {
   maximumAmount: number;
 }
 
-export interface Quote {
+export interface Estimate {
   quoteId: string;
   sourceAmount: number;
   settlementAmount: number;
@@ -41,6 +41,9 @@ export interface Quote {
   expiry: string;
   simulated: boolean;
 }
+
+/** @deprecated Use Estimate — kept for backward compatibility. */
+export type Quote = Estimate;
 
 export interface RailRec {
   corridorId: string;
@@ -113,7 +116,10 @@ export const api = {
   recommend: (country: string, amount: number) =>
     req<RailRec[]>(`/routes/recommend?country=${country}&amount=${amount}`),
   quote: (corridorId: string, sourceAmount: number) =>
-    req<Quote>("/quotes", { method: "POST", body: JSON.stringify({ corridorId, sourceAmount }) }),
+    req<Estimate>("/estimates", { method: "POST", body: JSON.stringify({ corridorId, sourceAmount }) }),
+  /** User-facing name. /quotes remains as a server alias. */
+  estimate: (corridorId: string, sourceAmount: number) =>
+    req<Estimate>("/estimates", { method: "POST", body: JSON.stringify({ corridorId, sourceAmount }) }),
   createTransfer: (corridorId: string, sourceAmount: number, idempotencyKey?: string) =>
     req<Transfer>("/transfers", {
       method: "POST",

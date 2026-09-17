@@ -9,7 +9,7 @@ const quoteSchema = z.object({
 
 export function quoteRoutes(c: Container): Router {
   const r = Router();
-  r.post("/quotes", (req, res) => {
+  const handler = (req: { body: unknown }, res: { status: (n: number) => { json: (b: unknown) => void } }) => {
     try {
       const body = quoteSchema.parse(req.body);
       const q = c.quotes.createQuote(body);
@@ -18,6 +18,9 @@ export function quoteRoutes(c: Container): Router {
     } catch (e: unknown) {
       res.status(400).json({ error: e instanceof Error ? e.message : "bad request" });
     }
-  });
+  };
+  // User-facing word is "estimate"; /quotes kept as a backward-compatible alias.
+  r.post("/estimates", handler as never);
+  r.post("/quotes", handler as never);
   return r;
 }

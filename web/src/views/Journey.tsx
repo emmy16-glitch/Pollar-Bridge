@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, shareUrl, transferEventsUrl, type Quote, type RailRec, type Transfer } from "../api";
+import { api, shareUrl, transferEventsUrl, type Estimate, type RailRec, type Transfer } from "../api";
 
 const COUNTRIES = [
   { code: "NG", name: "Nigeria", currency: "NGN" },
@@ -38,7 +38,7 @@ export function Journey({ onTransfer }: { onTransfer: (t: Transfer) => void }) {
   const [amount, setAmount] = useState("100000");
   const [recs, setRecs] = useState<RailRec[]>([]);
   const [picked, setPicked] = useState<RailRec | null>(null);
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [transfer, setTransfer] = useState<Transfer | null>(null);
   const [copied, setCopied] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,7 +46,7 @@ export function Journey({ onTransfer }: { onTransfer: (t: Transfer) => void }) {
   const [step, setStep] = useState(0);
   const keyRef = useRef("");
 
-  const expiryLeft = useCountdown(transfer?.paymentExpiresAt ?? quote?.expiry);
+  const expiryLeft = useCountdown(transfer?.paymentExpiresAt ?? estimate?.expiry);
   const share = useMemo(() => (transfer ? shareUrl(transfer.shareToken) : ""), [transfer]);
 
   // Live status via SSE (stops automatically on terminal states).
@@ -77,8 +77,8 @@ export function Journey({ onTransfer }: { onTransfer: (t: Transfer) => void }) {
       if (list.length === 0) throw new Error("No rails for that amount — try a smaller value");
       setRecs(list);
       setPicked(list[0]);
-      const q = await api.quote(list[0].corridorId, n);
-      setQuote(q);
+      const q = await api.estimate(list[0].corridorId, n);
+      setEstimate(q);
       setStep(0);
     } catch (e) {
       setError(e instanceof Error ? e.message : "routing failed");
@@ -91,10 +91,10 @@ export function Journey({ onTransfer }: { onTransfer: (t: Transfer) => void }) {
     setPicked(r);
     setError("");
     try {
-      const q = await api.quote(r.corridorId, Number(amount));
-      setQuote(q);
+      const q = await api.estimate(r.corridorId, Number(amount));
+      setEstimate(q);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "quote failed");
+      setError(e instanceof Error ? e.message : "estimate failed");
     }
   }
 
@@ -177,19 +177,20 @@ export function Journey({ onTransfer }: { onTransfer: (t: Transfer) => void }) {
         </div>
       )}
 
-      {quote && (
-        <div className="quote">
+      {estimate && (
+        <div className="estimate">
+          <div className="muted">Your estimate</div>
           <div>
-            <b>{quote.settlementAmount} USDC</b> <small>@ {quote.exchangeRate}</small>
+            <b>{estimate.settlementAmount} USDC</b> <small>@ {estimate.exchangeRate}</small>
           </div>
           <div className="muted">
-            Pay <b>{quote.amountDue}</b> · fees {quote.totalFees} · expires in {expiryLeft || "…"} ·{" "}
-            {quote.simulated ? "simulated rate" : "live rate"}
+            You send <b>{estimate.amountDue}</b> · fees {estimate.totalFees} · expires in {expiryLeft || "…"} ·{" "}
+            {estimate.simulated ? "simulated rate" : "live rate"}
           </div>
         </div>
       )}
 
-      {quote && !transfer && (
+      {estimate && !transfer && (
         <button className="primary" onClick={create} disabled={loading}>
           Get pay instructions
         </button>

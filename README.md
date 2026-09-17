@@ -222,7 +222,7 @@ Base URL: `http://localhost:4000/api`. All bodies are JSON.
 
 | Method | Path | Body | Description |
 |---|---|---|---|
-| POST | `/quotes` | `{ corridorId, sourceAmount }` | Standalone quote (fees, FX, expiry, `simulated`) |
+| POST | `/estimates` (`/quotes` alias) | `{ corridorId, sourceAmount }` | Transfer estimate — fees, FX, expiry, `simulated` |
 | POST | `/transfers` | `{ corridorId, sourceAmount, senderName?, idempotencyKey? }` + `Idempotency-Key` header | Creates quote **and** payment instructions; returns transfer with `paymentId` + `shareToken` + `instructions`. Same key = same transfer (safe retry) |
 | GET | `/transfers?limit=50&offset=0` | — | Transfer list (newest first, paginated) |
 | GET | `/transfers/:id` | — | Full transfer + status history |

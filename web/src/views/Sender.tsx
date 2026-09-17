@@ -32,7 +32,7 @@ export function Sender({ onCreated }: { onCreated: (id: string) => void }) {
 
   return (
     <section>
-      <h2>1 · Sender — choose corridor, get quote, pay</h2>
+      <h2>1 · Sender — choose corridor, get estimate, pay</h2>
       <label>
         Corridor
         <select value={corridorId} onChange={(e) => setCorridorId(e.target.value)}>
@@ -49,7 +49,7 @@ export function Sender({ onCreated }: { onCreated: (id: string) => void }) {
         <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" />
       </label>
       <button onClick={submit} disabled={loading}>
-        {loading ? "Creating…" : "Get quote + payment instructions"}
+        {loading ? "Creating…" : "Get estimate + payment instructions"}
       </button>
       {error && <p className="err">{error}</p>}
     </section>

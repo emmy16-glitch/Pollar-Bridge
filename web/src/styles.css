@@ -33,7 +33,7 @@ code { background: #0d1128; padding: 3px 8px; border-radius: 8px; border: 1px so
 .tag.fastest { background: #5b3a00; color: #ffd479; }
 .tag.sick { background: #5c1a1a; color: #ff9d9d; }
 .eta { font-size: .78rem; color: #9aa3c7; }
-.quote { margin-top: 12px; padding: 12px; border-radius: 12px; background: #0e1330; border: 1px dashed #4a5390; }
+.estimate, .quote { margin-top: 12px; padding: 12px; border-radius: 12px; background: #0e1330; border: 1px dashed #4a5390; }
 .paysheet { margin-top: 12px; padding: 14px; border-radius: 12px; background: linear-gradient(180deg,#1a2050,#12163a); border: 1px solid #5b5ff4; }
 .instr p { margin: 8px 0; }
 .st { padding: 3px 10px; border-radius: 999px; font-size: .78rem; background: #333a6b; }
