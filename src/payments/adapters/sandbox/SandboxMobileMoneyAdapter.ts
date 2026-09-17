@@ -13,8 +13,14 @@ import type {
 import type { LocalRailProvider } from "../LocalRailProvider.js";
 
 export class SandboxMobileMoneyProvider implements LocalRailProvider {
-  readonly providerId = "gh-demo-momo";
+  readonly providerId: string;
+  private currency: string;
   private payments = new Map<string, { status: PaymentStatus["status"] }>();
+
+  constructor(providerId = "gh-demo-momo", currency = "GHS") {
+    this.providerId = providerId;
+    this.currency = currency;
+  }
 
   capabilities(): ProviderCapabilities {
     return {
@@ -43,7 +49,7 @@ export class SandboxMobileMoneyProvider implements LocalRailProvider {
         accountName: "PollarBridge Sandbox MoMo",
         reference: req.reference,
         amount: req.localAmount,
-        currency: "GHS",
+        currency: this.currency,
         note: "Sandbox mobile money. Approve the prompt or wait for operator confirmation.",
       },
       expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),

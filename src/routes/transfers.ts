@@ -37,6 +37,7 @@ export function transferRoutes(c: Container): Router {
   r.post("/transfers/:id/settle", async (req, res) => {
     try {
       const t = await c.transfers.settleToPollar(req.params.id);
+      c.audit.record("system", "transfer.settle", req.params.id, t.pollarTxHash);
       res.json(t);
     } catch (e: unknown) {
       res.status(400).json({ error: e instanceof Error ? e.message : "settle failed" });

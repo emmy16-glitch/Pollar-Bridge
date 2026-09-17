@@ -25,7 +25,9 @@ npm test           # contract + e2e tests
 - `GET /api/transfers` / `GET /api/transfers/:id`
 - `POST /api/transfers/:id/settle` — only after `PAYMENT_VERIFIED`
 - `GET /api/transfers/:id/reconciliation`
-- Operator (sandbox): `POST /api/operator/payments/:paymentId/detected|verify|reject`
+- Operator (sandbox): `GET /api/operator/pending`, `POST /api/operator/payments/:paymentId/detected|verify|reject|refund`, `GET /api/operator/audit`
+- Admin: `PATCH /api/corridors/:id` `{enabled}` — disable without deleting history (§23.3)
+- `GET /api/providers/health` — latency, error rate, availability (§23.4)
 - `GET /api/routes/recommend?country=NG&amount=100000` — smart rail ranking (cheapest/fastest)
 - `GET /api/transfers/:id/handoff` — clean Africa→Pollar→BOB-mock receipt for judges
 - `GET /api/track/:token` — public recipient tracking link (no PII)

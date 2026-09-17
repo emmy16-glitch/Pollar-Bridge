@@ -24,8 +24,14 @@ interface SandboxPayment {
 // Behaves like a real provider: instructions -> awaiting -> detected/review -> verified.
 // No instant-credit shortcut (spec Layer 17).
 export class SandboxBankProvider implements LocalRailProvider {
-  readonly providerId = "ng-demo-bank";
+  readonly providerId: string;
+  private currency: string;
   private payments = new Map<string, SandboxPayment>();
+
+  constructor(providerId = "ng-demo-bank", currency = "NGN") {
+    this.providerId = providerId;
+    this.currency = currency;
+  }
 
   capabilities(): ProviderCapabilities {
     return {
@@ -49,7 +55,7 @@ export class SandboxBankProvider implements LocalRailProvider {
       paymentId,
       reference: req.reference,
       amount: req.localAmount,
-      currency: "NGN",
+      currency: this.currency,
       status: "awaiting_payment",
       verified: false,
     });
@@ -61,7 +67,7 @@ export class SandboxBankProvider implements LocalRailProvider {
         accountNumber: "0001234567",
         reference: req.reference,
         amount: req.localAmount,
-        currency: "NGN",
+        currency: this.currency,
         note: "Sandbox bank transfer. Include the reference exactly. Operator confirms receipt.",
       },
       expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),

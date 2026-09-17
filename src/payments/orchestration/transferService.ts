@@ -125,6 +125,18 @@ export class TransferService {
     return t;
   }
 
+  // Spec §24.3 refund states: REFUND_PENDING -> REFUNDED via the same adapter contract.
+  async refundPayment(paymentId: string, reason = "operator refund"): Promise<Transfer> {
+    const t = this.store.getByPayment(paymentId);
+    const corridor = getCorridor(t.corridorId);
+    const adapter = this.registry.resolve(corridor.sourceCountry, corridor.sourceRail, corridor.mode);
+    const res = await adapter.refundPayment(paymentId);
+    if (!res.refunded) throw new Error(res.reason ?? "refund unsupported by provider");
+    if (t.status !== "REFUND_PENDING") stamp(t, "REFUND_PENDING", reason);
+    stamp(t, "REFUNDED", reason);
+    return t;
+  }
+
   get(id: string): Transfer {
     return this.store.getTransfer(id);
   }

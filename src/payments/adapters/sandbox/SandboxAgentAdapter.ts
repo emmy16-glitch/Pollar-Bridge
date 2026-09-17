@@ -12,12 +12,13 @@ import type {
 } from "../../../types.js";
 import type { LocalRailProvider } from "../LocalRailProvider.js";
 
-export class SandboxP2PProvider implements LocalRailProvider {
+// Agent-assisted cash: user gets a code, agent confirms cash-in (spec rail).
+export class SandboxAgentProvider implements LocalRailProvider {
   readonly providerId: string;
   private currency: string;
   private payments = new Map<string, { status: PaymentStatus["status"] }>();
 
-  constructor(providerId = "ng-demo-p2p", currency = "NGN") {
+  constructor(providerId = "ke-demo-agent", currency = "KES") {
     this.providerId = providerId;
     this.currency = currency;
   }
@@ -39,19 +40,19 @@ export class SandboxP2PProvider implements LocalRailProvider {
   }
 
   async createPayment(req: PaymentRequest): Promise<PaymentInstruction> {
-    const paymentId = `p2p_${uuid().slice(0, 8)}`;
+    const paymentId = `agent_${uuid().slice(0, 8)}`;
     this.payments.set(paymentId, { status: "awaiting_payment" });
     return {
       paymentId,
       status: "PAYMENT_INSTRUCTIONS_ISSUED",
       instructions: {
-        accountName: "PollarBridge P2P Operator",
+        accountName: "PollarBridge Agent Network",
         reference: req.reference,
         amount: req.localAmount,
         currency: this.currency,
-        note: "Sandbox P2P. Upload proof in the web app; operator releases after review.",
+        note: "Sandbox agent cash-in. Show this code to the agent; agent confirms receipt.",
       },
-      expiresAt: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     };
   }
 
@@ -80,6 +81,6 @@ export class SandboxP2PProvider implements LocalRailProvider {
   }
 
   async refundPayment(paymentId: string): Promise<RefundResult> {
-    return { refunded: true, paymentId, reason: "sandbox p2p refund" };
+    return { refunded: true, paymentId, reason: "sandbox agent refund" };
   }
 }

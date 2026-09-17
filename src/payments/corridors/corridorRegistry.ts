@@ -84,3 +84,10 @@ export function getCorridor(id: string): Corridor {
 export function listCorridors(enabledOnly = false): Corridor[] {
   return enabledOnly ? corridors.filter((c) => c.enabled) : [...corridors];
 }
+
+// Spec §23.3: a corridor can be disabled without deleting its history.
+export function setCorridorEnabled(id: string, enabled: boolean): Corridor {
+  const c = getCorridor(id);
+  c.enabled = enabled;
+  return { ...c };
+}
