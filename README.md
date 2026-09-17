@@ -1,94 +1,416 @@
-# PollarBridge Africa — Backend (Phase 1: architecture + sandbox)
+# PollarBridge Africa
 
-Web-only configurable payment-rail backend. Implements the spec in `main (5).pdf`:
-universal transfer engine + country config + corridor model + local-rail adapters +
-capability matrix + state machine + reconciliation + Pollar settlement.
+A **web-only, configurable payment-rail backend (+ demo frontend)** that connects African
+local money (bank, mobile money, P2P, agents) to **Pollar testnet wallets and USDC transfers**,
+with the final BOB payout mocked per hackathon rules.
 
-## Quickstart
+Implements the architecture spec in `main (5).pdf`: a universal transfer engine with
+pluggable country configuration, corridor model, provider adapters, capability matrix,
+payment state machine, reconciliation, and a Pollar settlement boundary.
 
-```bash
-npm install
-cp .env.example .env
-npm run dev        # :4000
-npm test           # contract + e2e tests
+**Status:** live on testnet · 30/30 backend tests green · 28/28 live-API e2e checks green ·
+frontend builds clean. See [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof.
+
+---
+
+## Contents
+
+1. [The idea in 60 seconds](#1-the-idea-in-60-seconds)
+2. [Hackathon compliance](#2-hackathon-compliance)
+3. [Architecture](#3-architecture)
+4. [Features](#4-features)
+5. [Quickstart](#5-quickstart)
+6. [API reference](#6-api-reference)
+7. [Transfer lifecycle walkthrough](#7-transfer-lifecycle-walkthrough)
+8. [Project structure](#8-project-structure)
+9. [Design rules enforced in code](#9-design-rules-enforced-in-code)
+10. [Testing](#10-testing)
+11. [Spec traceability](#11-spec-traceability)
+12. [Security model](#12-security-model)
+13. [Roadmap to pilot and live](#13-roadmap-to-pilot-and-live)
+14. [Links](#14-links)
+
+---
+
+## 1. The idea in 60 seconds
+
+Sending money from Africa to Bolivia has two halves. The **African leg** (collecting local
+currency through fragmented rails) is the hard product problem — Pollar provides no Africa
+ramp, so this project designs and builds it. The **Bolivian leg** (BOB payout) already exists
+as Pollar's mainnet Stereum ramp, so this project only hands off to it and mocks the final step.
+
+```
+African sender
+  │
+  ▼
+Local rail (bank / mobile money / P2P / agent)   ◄── THIS PROJECT (sandbox + operator flow)
+  │
+  ▼
+Detection ──► operator/bank verification (detection ≠ verification)
+  │
+  ▼  PAYMENT_VERIFIED fires Pollar Deferred wallet funding (testnet)
+Pollar wallet + sponsored USDC transfer          ◄── Pollar testnet (real SDK + keys)
+  │
+  ▼
+BOB payout                                       ◄── MOCKED (Pollar mainnet-side, out of scope)
+  │
+Bolivian recipient (tracks via share link)
 ```
 
-## Web demo (sender · track · operator + Pollar wallet)
+The central design rule, quoted from the spec:
+
+> “The workflow stays the same. Country configuration, payment-rail adapters, provider
+> credentials, compliance policy, and settlement capabilities change around it.”
+
+---
+
+## 2. Hackathon compliance
+
+How each organizer rule is satisfied:
+
+| Organizer rule | Implementation | Proof |
+|---|---|---|
+| African leg is yours (fund/cash-out via local rails) | 8 sandbox providers across NG/GH/KE/ZA: bank, mobile money, P2P, agent | `GET /api/capabilities` |
+| Sandbox or documented semi-manual flow is fine | Sandbox adapters + operator verify/reject/refund queue | `GET /api/operator/pending` |
+| Don't build Bolivia | No Bolivia code exists; payout is a labeled mock | `GET /api/transfers/:id/handoff` → `bolivia.status: "mocked"` |
+| Build and demo on testnet (wallets, sponsored txs, USDC) | Real `@pollar/react` + `@pollar/core`, `pub/sec_testnet_` keys, Deferred funding | [POLLAR_SETUP.md](POLLAR_SETUP.md) |
+| Mock the final BOB payout | `BOB-MOCK-*` refs with explicit note | handoff receipt |
+| African path must exist, be well designed, hand off cleanly | State machine + capability matrix + handoff receipt with idempotency key | `scripts/e2e.sh` (28 checks) |
+
+---
+
+## 3. Architecture
+
+```
+                    ┌─────────────────────────────────┐
+                    │           Web clients            │
+                    │  sender · recipient · operator   │  web/ (@pollar/react)
+                    └───────────────┬─────────────────┘
+                                    │  REST /api
+                    ┌───────────────▼─────────────────┐
+                    │        Corridor engine           │  corridors/ + countries/
+                    │  which routes actually exist?    │  capabilityMatrix.ts
+                    └───────────────┬─────────────────┘
+                                    │
+                    ┌───────────────▼─────────────────┐
+                    │     Transfer orchestration       │  orchestration/
+                    │  state machine · quotes ·        │  transferService.ts
+                    │  reconciliation · audit          │  stateMachine.ts · quoteService.ts
+                    └───────┬─────────────────┬───────┘
+                            │                 │
+            ┌───────────────▼──────┐  ┌───────▼──────────────────┐
+            │ Local-rail adapters  │  │ Pollar settlement adapter │
+            │ bank/momo/P2P/agent  │  │ wallets · USDC · BOB-mock │
+            │ sandbox/* · live/*   │  │ pollar/pollarService.ts   │
+            └──────────────────────┘  └──────────────────────────┘
+```
+
+Layer map (spec §6–§15):
+
+| # | Layer | Code |
+|---|---|---|
+| 1 | Country configuration | `src/payments/countries/` (NG, GH, KE, ZA + registry) |
+| 2 | Explicit corridor model | `src/payments/corridors/corridorRegistry.ts` |
+| 3 | Stable provider interface | `src/payments/adapters/LocalRailProvider.ts` |
+| 4 | Provider registry | `src/payments/providers/providerRegistry.ts` |
+| 5 | Capability matrix | `src/payments/providers/capabilityMatrix.ts` |
+| 6 | Payment state machine | `src/payments/orchestration/stateMachine.ts` |
+| 7 | Quote & FX service | `src/payments/orchestration/quoteService.ts` |
+| 8 | Pollar settlement adapter | `src/payments/pollar/pollarService.ts` |
+| 9 | Reconciliation | `src/payments/orchestration/reconciliation.ts` |
+
+Cross-cutting: smart routing (`payments/routing/`), provider health
+(`providers/providerHealth.ts`), audit log (`store/auditLog.ts`), in-memory store
+(`store/memoryStore.ts`, swappable for a DB without touching orchestration).
+
+---
+
+## 4. Features
+
+**Transfer engine**
+- Provider-independent state machine (12 forward states + 6 failure states); illegal
+  transitions throw instead of corrupting data.
+- Detection is separated from verification: a detected payment cannot release USDC —
+  `settleToPollar` throws unless status is `PAYMENT_VERIFIED`.
+- Quotes carry fees, FX rate, expiry, rate source, and a `simulated` flag in sandbox.
+
+**Local rails (the African leg)**
+- 8 registered sandbox providers: NG bank/P2P, GH mobile money/bank, KE mobile
+  money/agent, ZA bank/P2P — plus a cash-agent rail with claim codes.
+- Live adapters (`NigeriaBankLiveProvider`, `GhanaMobileMoneyLiveProvider`) implement the
+  same contract but refuse to run without production credentials (Phase 4 gate).
+- Smart routing: `GET /api/routes/recommend?country=NG&amount=50000` ranks rails by
+  cost/ETA and labels cheapest/fastest.
+
+**Pollar leg (testnet, real)**
+- Frontend uses `@pollar/react` with the publishable key; backend holds the secret key
+  and triggers Deferred wallet funding (`POST /v1/wallets/fund`) on `PAYMENT_VERIFIED`.
+- Without keys the backend falls back to clearly-labeled Stellar-style mocks
+  (64-hex hashes, `G…` addresses) so the demo never breaks offline.
+- Handoff receipt (`GET /api/transfers/:id/handoff`) bundles African rail proof + Pollar
+  tx + mocked BOB leg under one idempotency key.
+
+**Operations (the operator leg)**
+- Pending queue, detect/verify/reject/refund endpoints, full audit trail.
+- Corridor administration: enable/disable without deleting history.
+- Provider health: calls, error rate, latency, healthy flag per provider.
+- Public recipient tracking: `GET /api/track/:token` exposes status + timeline only —
+  no PII, no secrets.
+- Webhook skeleton for live providers (HMAC-enforced in live mode).
+
+---
+
+## 5. Quickstart
+
+**Prerequisites:** Node ≥ 20.
+
+```bash
+git clone https://github.com/emmy16-glitch/Pollar-Bridge.git
+cd Pollar-Bridge
+npm install
+cp .env.example .env        # fill in POLLAR_PUBLISHABLE_KEY / POLLAR_SECRET_KEY
+npm run dev                 # backend on :4000
+```
+
+**Frontend demo** (sender · tracker · operator · Pollar wallet):
 
 ```bash
 cd web
-cp .env.example .env   # VITE_API_URL + VITE_POLLAR_PUBLISHABLE_KEY (pub_testnet_...)
+cp .env.example .env        # VITE_API_URL + VITE_POLLAR_PUBLISHABLE_KEY only
 npm install
-npm run dev            # :5173, backend on :4000
-npm run build          # typecheck + production build
+npm run dev                 # :5173 (backend must run on :4000)
 ```
 
-## Full end-to-end verification
+**Environment variables:**
 
-```bash
-npm test                                   # backend: 30 tests
-bash scripts/e2e.sh                        # live API: 20+ endpoint checks, fails on first error
-cd web && npm run build                    # frontend build
+| Var | Where | Required | Notes |
+|---|---|---|---|
+| `PORT` | backend `.env` | no (`4000`) | API listen port |
+| `MODE` | backend `.env` | no (`sandbox`) | `sandbox` \| `pilot` \| `live` |
+| `POLLAR_ENV` | backend `.env` | no (`testnet`) | Stellar network label |
+| `POLLAR_PUBLISHABLE_KEY` | backend `.env` + `web/.env` | for real mode | `pub_testnet_…` — safe for browsers |
+| `POLLAR_SECRET_KEY` | backend `.env` only | for real funding | `sec_testnet_…` — **never** in `web/` |
+| `VITE_API_URL` | `web/.env` | no (defaults to `http://localhost:4000/api`) | backend base URL |
+
+Full key setup, funding, and troubleshooting: [POLLAR_SETUP.md](POLLAR_SETUP.md).
+
+---
+
+## 6. API reference
+
+Base URL: `http://localhost:4000/api`. All bodies are JSON.
+
+**Discovery**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/health` | Liveness + Pollar env label |
+| GET | `/countries` | All country configs (limits, rails, verification policy) |
+| GET | `/corridors?enabledOnly=true` | Corridor list; `enabledOnly` hides disabled routes |
+| GET | `/corridors/:id` | One corridor |
+| GET | `/capabilities` | Availability computed from **real adapter capabilities**: `available` \| `manual` \| `coming_soon` \| `disabled` |
+| GET | `/providers` | Registered provider inventory |
+| GET | `/providers/health` | Per-provider calls, error rate, latency, healthy flag (§23.4) |
+
+**Quotes, transfers, settlement**
+
+| Method | Path | Body | Description |
+|---|---|---|---|
+| POST | `/quotes` | `{ corridorId, sourceAmount }` | Standalone quote (fees, FX, expiry, `simulated`) |
+| POST | `/transfers` | `{ corridorId, sourceAmount, senderName? }` | Creates quote **and** payment instructions; returns transfer with `paymentId` + `shareToken` |
+| GET | `/transfers` | — | Transfer list (newest first) |
+| GET | `/transfers/:id` | — | Full transfer + status history |
+| POST | `/transfers/:id/settle` | — | USDC settlement → Pollar → mocked BOB. **Refused unless `PAYMENT_VERIFIED`.** |
+| GET | `/transfers/:id/reconciliation` | — | Expected vs actual amounts, variance, `release`/`hold`/`refund`/`manual_review` |
+| GET | `/transfers/:id/handoff` | — | Judge receipt: African rail + Pollar tx + mocked BOB under one idempotency key |
+
+**Operator (sandbox semi-manual flow)**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/operator/pending` | Queue: awaiting, detected, under-review transfers |
+| POST | `/operator/payments/:paymentId/detected` | Record possible match (NOT verification) |
+| POST | `/operator/payments/:paymentId/verify` | Verify → `PAYMENT_VERIFIED` (unlocks settlement) |
+| POST | `/operator/payments/:paymentId/reject` | `{ reason }` → `PAYMENT_REJECTED` |
+| POST | `/operator/payments/:paymentId/refund` | `{ reason? }` → `REFUND_PENDING` → `REFUNDED` |
+| GET | `/operator/audit?limit=100` | Who did what, when (verifies, rejects, refunds, admin) |
+
+**Administration & extras**
+
+| Method | Path | Description |
+|---|---|---|
+| PATCH | `/corridors/:id` | `{ enabled: boolean }` — disable a route without deleting history (§23.3) |
+| GET | `/routes/recommend?country=NG&amount=50000` | Ranked rail options with fees + ETA + cheapest/fastest labels |
+| GET | `/track/:token` | Public recipient view: reference, status, amounts, timeline (no PII) |
+| POST | `/webhooks/:provider` | Live-provider webhook skeleton; signature required in live mode |
+
+Error shape everywhere: `{ "error": "<human-readable reason>" }` (no stacks, no secrets).
+
+---
+
+## 7. Transfer lifecycle walkthrough
+
+Happy path (each step appends to `transfer.history`):
+
+```
+QUOTE_CREATED → PAYMENT_INSTRUCTIONS_ISSUED → AWAITING_LOCAL_PAYMENT
+  → PAYMENT_DETECTED → PAYMENT_UNDER_REVIEW → PAYMENT_VERIFIED
+  → USDC_SETTLEMENT_PENDING → USDC_SETTLED_TO_POLLAR
+  → POLLAR_TRANSFER_SUBMITTED → POLLAR_TRANSFER_CONFIRMED
+  → DESTINATION_PAYOUT_PENDING → COMPLETED
 ```
 
-## API
+Failure states: `PAYMENT_EXPIRED`, `PAYMENT_REJECTED`, `SETTLEMENT_FAILED`,
+`PAYOUT_FAILED`, `REFUND_PENDING`, `REFUNDED`.
 
-- `GET /api/health`
-- `GET /api/countries`
-- `GET /api/corridors?enabledOnly=true`
-- `GET /api/capabilities` — availability from real adapter capabilities
-- `GET /api/providers`
-- `POST /api/quotes` `{ corridorId, sourceAmount }`
-- `POST /api/transfers` `{ corridorId, sourceAmount, senderName? }` → creates quote + payment instructions
-- `GET /api/transfers` / `GET /api/transfers/:id`
-- `POST /api/transfers/:id/settle` — only after `PAYMENT_VERIFIED`
-- `GET /api/transfers/:id/reconciliation`
-- Operator (sandbox): `GET /api/operator/pending`, `POST /api/operator/payments/:paymentId/detected|verify|reject|refund`, `GET /api/operator/audit`
-- Admin: `PATCH /api/corridors/:id` `{enabled}` — disable without deleting history (§23.3)
-- `GET /api/providers/health` — latency, error rate, availability (§23.4)
-- `GET /api/routes/recommend?country=NG&amount=100000` — smart rail ranking (cheapest/fastest)
-- `GET /api/transfers/:id/handoff` — clean Africa→Pollar→BOB-mock receipt for judges
-- `GET /api/track/:token` — public recipient tracking link (no PII)
-- `POST /api/webhooks/:provider` — live-provider webhook skeleton (HMAC-enforced in live mode)
-
-## Pollar wiring (testnet)
-
-Frontend uses `@pollar/react` with `POLLAR_PUBLISHABLE_KEY` (`pub_testnet_...` from
-https://dashboard.pollar.xyz → Build → API Keys). Backend holds `POLLAR_SECRET_KEY`
-(`sec_testnet_...`) server-side only and triggers Deferred wallet funding
-(`POST /v1/wallets/fund`) when the African payment reaches `PAYMENT_VERIFIED`.
-No keys = clearly-labeled Stellar-style mocks, so the demo never breaks.
-The BOB payout is **always mocked** — the real BOB ramp (Stereum) is Pollar mainnet-side.
-
-Demo flow:
+Try it (replace ids from each response):
 
 ```bash
-curl -s localhost:4000/api/corridors?enabledOnly=true
-curl -s -X POST localhost:4000/api/transfers -H 'Content-Type: application/json' \
+BASE=localhost:4000/api
+curl -s $BASE/corridors?enabledOnly=true
+curl -s -X POST $BASE/transfers -H 'Content-Type: application/json' \
   -d '{"corridorId":"NG-NGN-BANK-BO-USDC","sourceAmount":100000}'
-# -> copy paymentId
-curl -s -X POST localhost:4000/api/operator/payments/<paymentId>/detected
-curl -s -X POST localhost:4000/api/operator/payments/<paymentId>/verify
-curl -s -X POST localhost:4000/api/transfers/<transferId>/settle
+# settle is correctly REFUSED here (not yet verified):
+curl -s -X POST $BASE/transfers/<transferId>/settle
+curl -s -X POST $BASE/operator/payments/<paymentId>/detected
+curl -s -X POST $BASE/operator/payments/<paymentId>/verify
+curl -s -X POST $BASE/transfers/<transferId>/settle        # → COMPLETED
+curl -s $BASE/transfers/<transferId>/handoff
+curl -s $BASE/track/<shareToken>
 ```
 
-## Layout
+Or run the whole flow automatically: `bash scripts/e2e.sh` (28 checks, fails fast).
+
+---
+
+## 8. Project structure
 
 ```
-src/
-  types.ts  container.ts  app.ts  index.ts
-  payments/orchestration/ transferService.ts stateMachine.ts quoteService.ts reconciliation.ts
-  payments/adapters/ LocalRailProvider.ts sandbox/* live/*
-  payments/countries/ payments/corridors/ payments/providers/
-  payments/pollar/pollarService.ts
-  routes/ store/
-tests/ contract.test.ts e2e.test.ts
+Pollar-Bridge/
+├── README.md                  # this file
+├── POLLAR_SETUP.md            # Pollar testnet ops manual + judge demo
+├── package.json               # backend deps + scripts
+├── tsconfig.json  vitest.config.ts
+├── scripts/e2e.sh             # live-API end-to-end verification (28 checks)
+├── src/
+│   ├── index.ts               # server entry (dotenv + listen)
+│   ├── app.ts                 # Express app, logging, error boundary
+│   ├── container.ts           # wiring: registries, adapters, services
+│   ├── types.ts               # domain types (Country, Corridor, Quote, Transfer…)
+│   ├── payments/
+│   │   ├── orchestration/     # transferService, stateMachine, quoteService, reconciliation
+│   │   ├── adapters/          # LocalRailProvider + sandbox/* + live/*
+│   │   ├── countries/         # nigeria, ghana, kenya, southAfrica + registry
+│   │   ├── corridors/         # corridorRegistry (+ admin enable/disable)
+│   │   ├── providers/         # providerRegistry, capabilityMatrix, providerHealth
+│   │   ├── pollar/            # pollarService (real SDK path + mock fallback)
+│   │   └── routing/           # smart rail recommendations
+│   ├── routes/                # corridors, quotes, transfers, operator, extra, health
+│   └── store/                 # memoryStore, auditLog
+├── tests/                     # contract, e2e, hackathon-alignment, spec coverage (30)
+└── web/                       # @pollar/react demo frontend
+    ├── src/api.ts             # typed backend client
+    ├── src/App.tsx            # PollarProvider + 4-panel layout
+    └── src/views/             # Sender, Tracker, Operator, WalletPanel
 ```
 
-## Rules enforced in code
+---
 
-- No UI/provider branching on country — `ProviderRegistry.resolve(country, rail, mode)`.
-- Corridor enabled only with working adapter; capabilities matrix decides `available|manual|coming_soon|disabled`.
-- Detection ≠ verification. `settleToPollar` throws unless `PAYMENT_VERIFIED`.
-- Secrets server-side only; config references credential names (`GH_MOBILE_MONEY_X_LIVE`).
-- Live adapters refuse to run without env credentials (Phase 4 gate).
+## 9. Design rules enforced in code
+
+- **No country branching.** UI, orchestration, and settlement resolve providers only via
+  `ProviderRegistry.resolve(country, rail, mode)` — adding a country means registering an
+  adapter, never editing control flow.
+- **Availability is computed, not declared.** The capability matrix combines corridor config
+  with live adapter capabilities; the dashboard can never offer a route with no code behind it.
+- **Detection ≠ verification.** `settleToPollar` throws unless `PAYMENT_VERIFIED`; operator
+  buttons and live webhooks converge on the same state.
+- **Pollar is a boundary.** Local rails prove money arrived; the Pollar adapter owns wallets,
+  USDC, and the mocked BOB handoff. Secrets never cross to the browser.
+- **Live is gated.** Live adapters throw without production credentials; webhooks demand
+  signatures in live mode; unhealthy providers are flagged by the health tracker.
+
+---
+
+## 10. Testing
+
+```bash
+npm run typecheck          # strict TS, backend
+npm test                   # vitest: 30 tests
+bash scripts/e2e.sh        # live API: 28 endpoint checks against a booted server
+cd web && npm run build    # frontend typecheck + production build
+```
+
+Test files:
+
+| File | Covers |
+|---|---|
+| `tests/contract.test.ts` | Adapter contract suite (§18) × 3 sandbox providers: instructions, stable ids, awaiting state, verify, cancel, no-early-USDC, reconciliation |
+| `tests/e2e.test.ts` | Full NG→BO sandbox transfer to `COMPLETED` with tx hash |
+| `tests/hackathon.test.ts` | Mock-vs-real mode, smart routing, share token + handoff (BOB mocked, Stellar hash) |
+| `tests/spec.test.ts` | 8-provider registration, corridor disable with history, pending/audit, refund chain, health snapshot |
+
+---
+
+## 11. Spec traceability
+
+`main (5).pdf` section → implementation:
+
+| Spec | Location |
+|---|---|
+| §3 web-only surfaces | `web/` (sender, tracker, operator, wallet) |
+| §6 country config | `src/payments/countries/` |
+| §7 corridor model | `src/payments/corridors/` |
+| §8 provider interface | `src/payments/adapters/LocalRailProvider.ts` |
+| §9 provider registry | `src/payments/providers/providerRegistry.ts` |
+| §10 capability matrix | `src/payments/providers/capabilityMatrix.ts` |
+| §11 state machine | `src/payments/orchestration/stateMachine.ts` |
+| §12 detection vs verification | `transferService.markDetected/verifyPayment` + settle guard |
+| §13 quotes/FX | `src/payments/orchestration/quoteService.ts` |
+| §14 Pollar settlement | `src/payments/pollar/pollarService.ts` |
+| §15 reconciliation | `src/payments/orchestration/reconciliation.ts` + route |
+| §16 sandbox→live modes | `RuntimeMode` everywhere; live adapters gated |
+| §17 sandbox adapters | `src/payments/adapters/sandbox/` (bank, momo, P2P, agent) |
+| §18 contract tests | `tests/contract.test.ts` |
+| §19 country expansion | 8 registrations in `src/container.ts` |
+| §20 security boundaries | [§12 below](#12-security-model); credential-name references |
+| §22 end-to-end example | `tests/e2e.test.ts` + `scripts/e2e.sh` |
+| §23 dashboard views | operator/admin/health/track routes + `web/` panels |
+| §24 phases | Phase 1–2 done; Phase 3 (DB, auth) and 4 (licensed live rails) → [§13](#13-roadmap-to-pilot-and-live) |
+
+---
+
+## 12. Security model
+
+- **Key separation.** Publishable keys (`pub_…`) may ship in `web/`; secret keys (`sec_…`),
+  provider API keys, and webhook signing secrets live in backend `.env`/secret manager only.
+  Country config references credential *names*, never values.
+- **No secret leakage.** Central error handler returns `{ error }` without stacks; request
+  logging redacts `api_key/token/secret` patterns; tracking links expose status only.
+- **Sandbox walls.** Live adapters throw without live credentials; live webhooks reject
+  unsigned calls; mock hashes/addresses are Stellar-shaped but visibly mock (`mode: "mock"`).
+- **Both `.env` files are gitignored.** Keys stay on the operator machine; the repo carries
+  only `.env.example` templates.
+
+---
+
+## 13. Roadmap to pilot and live
+
+**Phase 3 — pilot readiness (next):** persistent DB behind the store interface, operator auth,
+per-day limits enforcement, dispute handling, alerting on health failures, audit export.
+
+**Phase 4 — live provider (one country, one licensed rail):** implement the adapter's real
+`createPayment`/webhook/polling/refund calls, reconciliation against provider reports,
+KYC/AML + sanctions screening hooks, controlled pilot limits, then broader enablement.
+
+A country goes live only when adapter + credentials + limits + verification + settlement +
+compliance are all in place — never because sandbox tests pass.
+
+---
+
+## 14. Links
+
+- Pollar docs: https://docs.pollar.xyz · Ramps: https://docs.pollar.xyz/docs/operator-guide/integrations/ramps
+- Dashboard: https://dashboard.pollar.xyz · SDK: https://github.com/pollar-xyz/pollar
+- Testnet explorer: https://stellar.expert/explorer/testnet
+- Ops manual + judge demo: [POLLAR_SETUP.md](POLLAR_SETUP.md)
