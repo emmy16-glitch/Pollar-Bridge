@@ -13,6 +13,24 @@ npm run dev        # :4000
 npm test           # contract + e2e tests
 ```
 
+## Web demo (sender · track · operator + Pollar wallet)
+
+```bash
+cd web
+cp .env.example .env   # VITE_API_URL + VITE_POLLAR_PUBLISHABLE_KEY (pub_testnet_...)
+npm install
+npm run dev            # :5173, backend on :4000
+npm run build          # typecheck + production build
+```
+
+## Full end-to-end verification
+
+```bash
+npm test                                   # backend: 30 tests
+bash scripts/e2e.sh                        # live API: 20+ endpoint checks, fails on first error
+cd web && npm run build                    # frontend build
+```
+
 ## API
 
 - `GET /api/health`
