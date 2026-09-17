@@ -3,6 +3,7 @@ import { getCorridor, listCorridors, setCorridorEnabled } from "../payments/corr
 import { listCountries } from "../payments/countries/countryRegistry.js";
 import { buildCapabilityMatrix } from "../payments/providers/capabilityMatrix.js";
 import type { Container } from "../container.js";
+import { operatorAuth, rateLimit } from "../security.js";
 
 export function corridorRoutes(c: Container): Router {
   const r = Router();
@@ -18,7 +19,8 @@ export function corridorRoutes(c: Container): Router {
     }
   });
   // Spec §23.3 corridor administration: disable without deleting history.
-  r.patch("/corridors/:id", (req, res) => {
+  // Admin write: operator-gated so anyone can't kill a live route.
+  r.patch("/corridors/:id", operatorAuth, rateLimit(60), (req, res) => {
     try {
       const enabled = (req.body as { enabled?: boolean })?.enabled;
       if (typeof enabled !== "boolean") {

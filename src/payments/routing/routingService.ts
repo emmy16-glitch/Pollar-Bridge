@@ -7,9 +7,11 @@ export interface RailRecommendation {
   rail: string;
   provider: string;
   totalRequired: number;
+  amountDue: number;
   settlementAmount: number;
   totalFees: number;
   eta: string;
+  healthy: boolean;
   label: "cheapest" | "fastest" | "standard";
 }
 
@@ -23,27 +25,36 @@ const ETA: Record<string, string> = {
   agent: "~30-60 min (agent cash-in)",
 };
 
-export function recommendRails(countryCode: string, amount: number, quotes = new QuoteService()): RailRecommendation[] {
+export function recommendRails(
+  countryCode: string,
+  amount: number,
+  quotes = new QuoteService(),
+  isHealthy?: (providerId: string) => boolean,
+): RailRecommendation[] {
   const options = listCorridors(true).filter((c) => c.sourceCountry === countryCode.toUpperCase());
   const recs: RailRecommendation[] = [];
   for (const c of options) {
     try {
       const q: Quote = quotes.createQuote({ corridorId: c.id, sourceAmount: amount });
+      const healthy = isHealthy ? isHealthy(c.providerId) : true;
       recs.push({
         corridorId: c.id,
         rail: c.sourceRail,
         provider: c.providerId,
         totalRequired: q.totalRequired,
+        amountDue: q.amountDue,
         settlementAmount: q.settlementAmount,
         totalFees: q.providerFee + q.platformFee,
         eta: ETA[c.sourceRail] ?? "~30 min",
+        healthy,
         label: "standard",
       });
     } catch {
       // corridor limits exclude this amount — skip, don't fail the whole list
     }
   }
-  recs.sort((a, b) => b.settlementAmount - a.settlementAmount);
+  // Healthy rails first, then best payout.
+  recs.sort((a, b) => Number(b.healthy) - Number(a.healthy) || b.settlementAmount - a.settlementAmount);
   if (recs[0]) recs[0].label = "cheapest";
   const fastest = recs.find((r) => r.rail === "mobile_money" || r.rail === "p2p");
   if (fastest && fastest !== recs[0]) fastest.label = "fastest";

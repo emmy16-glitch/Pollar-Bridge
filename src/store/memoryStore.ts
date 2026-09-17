@@ -6,6 +6,7 @@ export class MemoryStore {
   quotes = new Map<string, Quote>();
   transfers = new Map<string, Transfer>();
   paymentToTransfer = new Map<string, string>();
+  idempotencyToTransfer = new Map<string, string>();
 
   saveQuote(q: Quote): void {
     this.quotes.set(q.quoteId, q);
@@ -16,8 +17,21 @@ export class MemoryStore {
     return q;
   }
   saveTransfer(t: Transfer): void {
+    // Remove any stale payment index pointing at this transfer (e.g. the
+    // initial "" paymentId) before re-indexing the current one.
+    for (const [payId, trId] of this.paymentToTransfer) {
+      if (trId === t.transferId && payId !== t.paymentId) {
+        this.paymentToTransfer.delete(payId);
+      }
+    }
     this.transfers.set(t.transferId, t);
-    this.paymentToTransfer.set(t.paymentId, t.transferId);
+    // Never index empty payment ids — they collide across transfers.
+    if (t.paymentId) {
+      this.paymentToTransfer.set(t.paymentId, t.transferId);
+    }
+    if (t.idempotencyKey) {
+      this.idempotencyToTransfer.set(t.idempotencyKey, t.transferId);
+    }
   }
   getTransfer(id: string): Transfer {
     const t = this.transfers.get(id);
@@ -25,11 +39,17 @@ export class MemoryStore {
     return t;
   }
   getByPayment(paymentId: string): Transfer {
+    if (!paymentId) throw new Error(`Unknown payment: ${paymentId}`);
     const id = this.paymentToTransfer.get(paymentId);
     if (!id) throw new Error(`Unknown payment: ${paymentId}`);
     return this.getTransfer(id);
   }
-  listTransfers(): Transfer[] {
-    return [...this.transfers.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  getByIdempotency(key: string): Transfer | undefined {
+    const id = this.idempotencyToTransfer.get(key);
+    return id ? this.transfers.get(id) : undefined;
+  }
+  listTransfers(limit = 100, offset = 0): Transfer[] {
+    const all = [...this.transfers.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return all.slice(offset, offset + limit);
   }
 }

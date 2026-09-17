@@ -15,7 +15,7 @@ import type { LocalRailProvider } from "../LocalRailProvider.js";
 export class SandboxP2PProvider implements LocalRailProvider {
   readonly providerId: string;
   private currency: string;
-  private payments = new Map<string, { status: PaymentStatus["status"] }>();
+  private payments = new Map<string, { status: PaymentStatus["status"]; reference: string; amount: number }>();
 
   constructor(providerId = "ng-demo-p2p", currency = "NGN") {
     this.providerId = providerId;
@@ -40,7 +40,7 @@ export class SandboxP2PProvider implements LocalRailProvider {
 
   async createPayment(req: PaymentRequest): Promise<PaymentInstruction> {
     const paymentId = `p2p_${uuid().slice(0, 8)}`;
-    this.payments.set(paymentId, { status: "awaiting_payment" });
+    this.payments.set(paymentId, { status: "awaiting_payment", reference: req.reference, amount: req.localAmount });
     return {
       paymentId,
       status: "PAYMENT_INSTRUCTIONS_ISSUED",
@@ -58,7 +58,7 @@ export class SandboxP2PProvider implements LocalRailProvider {
   async getPaymentStatus(paymentId: string): Promise<PaymentStatus> {
     const p = this.payments.get(paymentId);
     if (!p) throw new Error(`Unknown payment: ${paymentId}`);
-    return { paymentId, status: p.status };
+    return { paymentId, status: p.status, raw: { reference: p.reference, amount: p.amount } };
   }
 
   simulateIncomingPayment(paymentId: string): void {

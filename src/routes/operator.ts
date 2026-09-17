@@ -1,14 +1,18 @@
 import { Router } from "express";
 import type { Container } from "../container.js";
+import { operatorAuth, rateLimit } from "../security.js";
 
 const PENDING: string[] = ["AWAITING_LOCAL_PAYMENT", "PAYMENT_DETECTED", "PAYMENT_UNDER_REVIEW"];
 
 // Operator dashboard API (spec §23.2): pending queue, verify/reject/refund, audit.
+// Money-moving POSTs require x-operator-key when OPERATOR_API_KEY is set;
+// reads (pending/audit) stay open for the demo cockpit.
 export function operatorRoutes(c: Container): Router {
   const r = Router();
 
-  r.get("/operator/pending", (_req, res) => {
-    res.json(c.transfers.list().filter((t) => PENDING.includes(t.status)));
+  r.get("/operator/pending", (req, res) => {
+    const limit = Math.min(Number(req.query.limit ?? 100) || 100, 200);
+    res.json(c.transfers.list(limit, 0).filter((t) => PENDING.includes(t.status)));
   });
 
   r.get("/operator/audit", (req, res) => {
@@ -16,22 +20,42 @@ export function operatorRoutes(c: Container): Router {
     res.json(c.audit.list(limit));
   });
 
-  r.post("/operator/payments/:paymentId/detected", (req, res) => {
+  const guard = [operatorAuth, rateLimit(120)];
+
+  // Simulate the user paying on ANY registered adapter (not just the first 4).
+  // Iterates the full registry and calls simulateIncomingPayment where present.
+  r.post("/operator/payments/:paymentId/detected", ...guard, (req, res) => {
     try {
-      for (const a of [c.sandboxBank, c.sandboxMomo, c.sandboxP2p, c.sandboxAgent]) {
+      const pid = req.params.paymentId;
+      let simulated = false;
+      for (const reg of c.registry.list()) {
         try {
-          (a as unknown as { simulateIncomingPayment: (id: string) => void }).simulateIncomingPayment(req.params.paymentId);
-        } catch { /* not this adapter */ }
+          const adapter = c.registry.resolveById(reg.providerId) as unknown as {
+            simulateIncomingPayment?: (id: string) => void;
+          };
+          if (typeof adapter.simulateIncomingPayment === "function") {
+            try {
+              adapter.simulateIncomingPayment(pid);
+              simulated = true;
+            } catch {
+              // not this adapter's payment — try next
+            }
+          }
+        } catch {
+          // unresolvable — skip
+        }
       }
-      const t = c.transfers.markDetected(req.params.paymentId);
-      c.audit.record("operator", "payment.detected", req.params.paymentId);
+      const t = c.transfers.markDetected(pid);
+      c.audit.record("operator", "payment.detected", pid, simulated ? "simulated" : "already-detected");
       res.json(t);
     } catch (e: unknown) {
-      res.status(404).json({ error: e instanceof Error ? e.message : "not found" });
+      const msg = e instanceof Error ? e.message : "not found";
+      const code = /expired/i.test(msg) ? 410 : /cannot mark/i.test(msg) ? 409 : 404;
+      res.status(code).json({ error: msg });
     }
   });
 
-  r.post("/operator/payments/:paymentId/verify", async (req, res) => {
+  r.post("/operator/payments/:paymentId/verify", ...guard, async (req, res) => {
     const started = Date.now();
     try {
       const t = await c.transfers.verifyPayment(req.params.paymentId, "operator");
@@ -44,7 +68,7 @@ export function operatorRoutes(c: Container): Router {
     }
   });
 
-  r.post("/operator/payments/:paymentId/reject", (req, res) => {
+  r.post("/operator/payments/:paymentId/reject", ...guard, (req, res) => {
     try {
       const reason = typeof req.body?.reason === "string" ? req.body.reason : "operator rejected";
       const t = c.transfers.rejectPayment(req.params.paymentId, reason);
@@ -55,7 +79,7 @@ export function operatorRoutes(c: Container): Router {
     }
   });
 
-  r.post("/operator/payments/:paymentId/refund", async (req, res) => {
+  r.post("/operator/payments/:paymentId/refund", ...guard, async (req, res) => {
     try {
       const reason = typeof req.body?.reason === "string" ? req.body.reason : "operator refund";
       const t = await c.transfers.refundPayment(req.params.paymentId, reason);

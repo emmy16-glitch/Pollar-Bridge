@@ -23,7 +23,8 @@ export class QuoteService {
     if (!rate) throw new Error(`No rate for corridor: ${corridor.id}`);
     const providerFee = Math.max(1, Math.round(req.sourceAmount * 0.008));
     const platformFee = Math.max(1, Math.round(req.sourceAmount * 0.007));
-    const net = req.sourceAmount - providerFee - platformFee;
+    const totalFees = providerFee + platformFee;
+    const net = req.sourceAmount - totalFees;
     const settlementAmount = Math.round(net * rate * 100) / 100;
     return {
       quoteId: `q_${uuid().slice(0, 8)}`,
@@ -35,7 +36,13 @@ export class QuoteService {
       exchangeRate: rate,
       providerFee,
       platformFee,
+      totalFees,
+      netAmount: net,
+      // amountDue is what the sender actually pays on the local rail.
+      // Fees are taken from the payout (net * rate), so amountDue == sourceAmount
+      // and variance math in reconciliation stays exact.
       totalRequired: req.sourceAmount,
+      amountDue: req.sourceAmount,
       expiry: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
       source: "manual",
       simulated: corridor.mode === "sandbox",

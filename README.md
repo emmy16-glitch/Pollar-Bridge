@@ -8,8 +8,9 @@ Implements the architecture spec in `main (5).pdf`: a universal transfer engine 
 pluggable country configuration, corridor model, provider adapters, capability matrix,
 payment state machine, reconciliation, and a Pollar settlement boundary.
 
-**Status:** live on testnet · 30/30 backend tests green · 28/28 live-API e2e checks green ·
-frontend builds clean. See [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof.
+**Status:** live on testnet · 33/33 backend tests green · 28/28 live-API e2e checks green ·
+frontend builds clean. See [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof,
+[SECURITY.md](SECURITY.md) for the security model.
 
 ---
 
@@ -190,9 +191,14 @@ npm run dev                 # :5173 (backend must run on :4000)
 | `POLLAR_ENV` | backend `.env` | no (`testnet`) | Stellar network label |
 | `POLLAR_PUBLISHABLE_KEY` | backend `.env` + `web/.env` | for real mode | `pub_testnet_…` — safe for browsers |
 | `POLLAR_SECRET_KEY` | backend `.env` only | for real funding | `sec_testnet_…` — **never** in `web/` |
+| `OPERATOR_API_KEY` | backend `.env` | pilot/live yes, demo no | Gates `POST /operator/*`, `POST /transfers/:id/settle`, `PATCH /corridors/:id` via `x-operator-key` |
+| `WEBHOOK_SECRET` | backend `.env` | live yes | HMAC-SHA256 over `<timestamp>.<raw-body>`; headers `x-webhook-signature` + `x-webhook-timestamp` |
+| `ALLOWED_ORIGINS` | backend `.env` | no | Comma allowlist; empty = allow all (dev only — set in prod) |
 | `VITE_API_URL` | `web/.env` | no (defaults to `http://localhost:4000/api`) | backend base URL |
+| `VITE_OPERATOR_KEY` | `web/.env` | must match backend when set | Sent as `x-operator-key` on operator buttons |
 
 Full key setup, funding, and troubleshooting: [POLLAR_SETUP.md](POLLAR_SETUP.md).
+Security semantics (auth, webhooks, rate limits, secret handling): [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -217,34 +223,39 @@ Base URL: `http://localhost:4000/api`. All bodies are JSON.
 | Method | Path | Body | Description |
 |---|---|---|---|
 | POST | `/quotes` | `{ corridorId, sourceAmount }` | Standalone quote (fees, FX, expiry, `simulated`) |
-| POST | `/transfers` | `{ corridorId, sourceAmount, senderName? }` | Creates quote **and** payment instructions; returns transfer with `paymentId` + `shareToken` |
-| GET | `/transfers` | — | Transfer list (newest first) |
+| POST | `/transfers` | `{ corridorId, sourceAmount, senderName?, idempotencyKey? }` + `Idempotency-Key` header | Creates quote **and** payment instructions; returns transfer with `paymentId` + `shareToken` + `instructions`. Same key = same transfer (safe retry) |
+| GET | `/transfers?limit=50&offset=0` | — | Transfer list (newest first, paginated) |
 | GET | `/transfers/:id` | — | Full transfer + status history |
-| POST | `/transfers/:id/settle` | — | USDC settlement → Pollar → mocked BOB. **Refused unless `PAYMENT_VERIFIED`.** |
-| GET | `/transfers/:id/reconciliation` | — | Expected vs actual amounts, variance, `release`/`hold`/`refund`/`manual_review` |
+| GET | `/transfers/:id/events` | SSE | Live status stream (replaces polling; auto-closes on terminal states) |
+| POST | `/transfers/:id/settle` 🔑 | — | USDC settlement → Pollar → mocked BOB. **Refused unless `PAYMENT_VERIFIED`. Operator-gated.** |
+| GET | `/transfers/:id/reconciliation` | — | Expected vs **real adapter actuals**, variance, `release`/`hold`/`refund`/`manual_review` |
 | GET | `/transfers/:id/handoff` | — | Judge receipt: African rail + Pollar tx + mocked BOB under one idempotency key |
 
-**Operator (sandbox semi-manual flow)**
+🔑 = requires `x-operator-key` when `OPERATOR_API_KEY` is set (always set in pilot/live).
+
+**Operator (sandbox semi-manual flow)** — money-moving POSTs are 🔑 + rate-limited.
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/operator/pending` | Queue: awaiting, detected, under-review transfers |
-| POST | `/operator/payments/:paymentId/detected` | Record possible match (NOT verification) |
-| POST | `/operator/payments/:paymentId/verify` | Verify → `PAYMENT_VERIFIED` (unlocks settlement) |
-| POST | `/operator/payments/:paymentId/reject` | `{ reason }` → `PAYMENT_REJECTED` |
-| POST | `/operator/payments/:paymentId/refund` | `{ reason? }` → `REFUND_PENDING` → `REFUNDED` |
+| GET | `/operator/pending?limit=100` | Queue: awaiting, detected, under-review transfers |
+| POST | `/operator/payments/:paymentId/detected` 🔑 | Record possible match (NOT verification); idempotent on re-click |
+| POST | `/operator/payments/:paymentId/verify` 🔑 | Verify → `PAYMENT_VERIFIED` (unlocks settlement) |
+| POST | `/operator/payments/:paymentId/reject` 🔑 | `{ reason }` → `PAYMENT_REJECTED` |
+| POST | `/operator/payments/:paymentId/refund` 🔑 | `{ reason? }` → `REFUND_PENDING` → `REFUNDED` (manual fallback when adapter can't auto-refund) |
 | GET | `/operator/audit?limit=100` | Who did what, when (verifies, rejects, refunds, admin) |
 
 **Administration & extras**
 
 | Method | Path | Description |
 |---|---|---|
-| PATCH | `/corridors/:id` | `{ enabled: boolean }` — disable a route without deleting history (§23.3) |
-| GET | `/routes/recommend?country=NG&amount=50000` | Ranked rail options with fees + ETA + cheapest/fastest labels |
+| PATCH | `/corridors/:id` 🔑 | `{ enabled: boolean }` — disable a route without deleting history (§23.3) |
+| GET | `/routes/recommend?country=NG&amount=50000` | Ranked rail options with fees + ETA + cheapest/fastest labels (unhealthy sinks) |
 | GET | `/track/:token` | Public recipient view: reference, status, amounts, timeline (no PII) |
-| POST | `/webhooks/:provider` | Live-provider webhook skeleton; signature required in live mode |
+| POST | `/webhooks/:provider` | Provider callback. Sandbox: dispatches `payment.received/verified` to the state machine. Live: HMAC-SHA256 over `<timestamp>.<raw-body>` + 5-min replay window required |
 
 Error shape everywhere: `{ "error": "<human-readable reason>" }` (no stacks, no secrets).
+Auth failures: `401 { error: "operator auth required…" }` / `401 invalid webhook signature` / `429 rate limited`.
+Expiry: `410 { error: "Payment expired…" }` — create a new transfer for a fresh quote.
 
 ---
 
@@ -269,6 +280,7 @@ Try it (replace ids from each response):
 BASE=localhost:4000/api
 curl -s $BASE/corridors?enabledOnly=true
 curl -s -X POST $BASE/transfers -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: demo-001' \
   -d '{"corridorId":"NG-NGN-BANK-BO-USDC","sourceAmount":100000}'
 # settle is correctly REFUSED here (not yet verified):
 curl -s -X POST $BASE/transfers/<transferId>/settle
@@ -277,7 +289,12 @@ curl -s -X POST $BASE/operator/payments/<paymentId>/verify
 curl -s -X POST $BASE/transfers/<transferId>/settle        # → COMPLETED
 curl -s $BASE/transfers/<transferId>/handoff
 curl -s $BASE/track/<shareToken>
+# live timeline (replaces polling):
+curl -N $BASE/transfers/<transferId>/events
 ```
+
+With `OPERATOR_API_KEY` set, add `-H 'x-operator-key: $OPERATOR_API_KEY'` to the
+operator/settle calls. Web frontend sends it automatically from `VITE_OPERATOR_KEY`.
 
 Or run the whole flow automatically: `bash scripts/e2e.sh` (28 checks, fails fast).
 
@@ -288,13 +305,15 @@ Or run the whole flow automatically: `bash scripts/e2e.sh` (28 checks, fails fas
 ```
 Pollar-Bridge/
 ├── README.md                  # this file
+├── SECURITY.md                # security semantics (auth, webhooks, secrets, limits)
 ├── POLLAR_SETUP.md            # Pollar testnet ops manual + judge demo
 ├── package.json               # backend deps + scripts
 ├── tsconfig.json  vitest.config.ts
 ├── scripts/e2e.sh             # live-API end-to-end verification (28 checks)
 ├── src/
 │   ├── index.ts               # server entry (dotenv + listen)
-│   ├── app.ts                 # Express app, logging, error boundary
+│   ├── app.ts                 # Express app, CORS, raw-body, headers, logging, errors
+│   ├── security.ts            # operatorAuth, rateLimit, redactSecrets
 │   ├── container.ts           # wiring: registries, adapters, services
 │   ├── types.ts               # domain types (Country, Corridor, Quote, Transfer…)
 │   ├── payments/
@@ -305,13 +324,13 @@ Pollar-Bridge/
 │   │   ├── providers/         # providerRegistry, capabilityMatrix, providerHealth
 │   │   ├── pollar/            # pollarService (real SDK path + mock fallback)
 │   │   └── routing/           # smart rail recommendations
-│   ├── routes/                # corridors, quotes, transfers, operator, extra, health
-│   └── store/                 # memoryStore, auditLog
-├── tests/                     # contract, e2e, hackathon-alignment, spec coverage (30)
+│   ├── routes/                # corridors, quotes, transfers (+SSE), operator, extra, health
+│   └── store/                 # memoryStore, auditLog, transferEvents
+├── tests/                     # contract, e2e, hackathon, spec, security (33)
 └── web/                       # @pollar/react demo frontend
-    ├── src/api.ts             # typed backend client
-    ├── src/App.tsx            # PollarProvider + 4-panel layout
-    └── src/views/             # Sender, Tracker, Operator, WalletPanel
+    ├── src/api.ts             # typed backend client (+ operator key)
+    ├── src/App.tsx            # PollarProvider + Journey/Track/Operator/Wallet
+    └── src/views/             # Journey, TrackerPanel, OperatorCockpit, PublicTrack, WalletPanel
 ```
 
 ---
@@ -336,7 +355,7 @@ Pollar-Bridge/
 
 ```bash
 npm run typecheck          # strict TS, backend
-npm test                   # vitest: 30 tests
+npm test                   # vitest: 33 tests
 bash scripts/e2e.sh        # live API: 28 endpoint checks against a booted server
 cd web && npm run build    # frontend typecheck + production build
 ```
@@ -349,6 +368,7 @@ Test files:
 | `tests/e2e.test.ts` | Full NG→BO sandbox transfer to `COMPLETED` with tx hash |
 | `tests/hackathon.test.ts` | Mock-vs-real mode, smart routing, share token + handoff (BOB mocked, Stellar hash) |
 | `tests/spec.test.ts` | 8-provider registration, corridor disable with history, pending/audit, refund chain, health snapshot |
+| `tests/security.test.ts` | Secret redaction, operator-auth demo passthrough, lazy Pollar env |
 
 ---
 
@@ -382,13 +402,27 @@ Test files:
 
 ## 12. Security model
 
+Full semantics: [SECURITY.md](SECURITY.md). Summary:
+
 - **Key separation.** Publishable keys (`pub_…`) may ship in `web/`; secret keys (`sec_…`),
-  provider API keys, and webhook signing secrets live in backend `.env`/secret manager only.
-  Country config references credential *names*, never values.
+  provider API keys, webhook secrets, and `OPERATOR_API_KEY` live in backend `.env`/secret
+  manager only. Country config references credential *names*, never values. Pollar env is
+  read lazily so `dotenv` ordering can't bake empty secrets.
+- **Operator auth.** `POST /operator/*`, `POST /transfers/:id/settle`, `PATCH /corridors/:id`
+  require `x-operator-key` (or `Authorization: Bearer`) when `OPERATOR_API_KEY` is set.
+  Unset = open demo mode with an `X-Operator-Auth: disabled-demo-mode` warning header.
+  **Always set it in pilot/live.**
+- **Webhooks.** Live mode requires HMAC-SHA256 over `<timestamp>.<raw-body>` with
+  `x-webhook-signature` + `x-webhook-timestamp` inside a 5-minute window
+  (`timingSafeEqual`). Sandbox dispatches the same state machine without a signature.
 - **No secret leakage.** Central error handler returns `{ error }` without stacks; request
-  logging redacts `api_key/token/secret` patterns; tracking links expose status only.
-- **Sandbox walls.** Live adapters throw without live credentials; live webhooks reject
-  unsigned calls; mock hashes/addresses are Stellar-shaped but visibly mock (`mode: "mock"`).
+  logging redacts keys/tokens/secrets and never logs header values; tracking links expose
+  status only; `Cache-Control: no-store` on API responses.
+- **Abuse control.** In-memory rate limits on transfer creation (120/min/IP) and
+  money-moving routes (60–120/min/IP) with `429 + Retry-After`; 100kb JSON body cap;
+  `Idempotency-Key` makes client retries safe.
+- **Sandbox walls.** Live adapters throw without live credentials; mock hashes/addresses
+  are Stellar-shaped but visibly mock (`mode: "mock"`).
 - **Both `.env` files are gitignored.** Keys stay on the operator machine; the repo carries
   only `.env.example` templates.
 
@@ -396,8 +430,9 @@ Test files:
 
 ## 13. Roadmap to pilot and live
 
-**Phase 3 — pilot readiness (next):** persistent DB behind the store interface, operator auth,
-per-day limits enforcement, dispute handling, alerting on health failures, audit export.
+**Phase 3 — pilot readiness (next):** persistent DB behind the store interface (operator
+auth is already done), per-day limits enforcement, dispute handling, alerting on health
+failures, audit export.
 
 **Phase 4 — live provider (one country, one licensed rail):** implement the adapter's real
 `createPayment`/webhook/polling/refund calls, reconciliation against provider reports,

@@ -90,7 +90,12 @@ export interface Quote {
   exchangeRate: number;
   providerFee: number;
   platformFee: number;
+  totalFees: number;
+  netAmount: number;
+  /** Amount the sender must actually pay (source + fees where applicable). */
   totalRequired: number;
+  /** Amount due kept explicit for the pay-sheet UI (equals totalRequired). */
+  amountDue: number;
   expiry: string; // ISO
   source: "provider" | "aggregator" | "manual";
   simulated: boolean;
@@ -171,15 +176,24 @@ export interface Transfer {
   // UNIQUE EDGE: public share token for recipient tracking links.
   // Safe to put in a URL — reveals status/timeline only, never PII/secrets.
   shareToken: string;
+  /** Idempotency key supplied on creation (header or body), for safe retries. */
+  idempotencyKey?: string;
   sourceAmount: number;
   totalRequired: number;
+  /** Exact amount the sender must pay on the local rail. */
+  amountDue?: number;
+  totalFees?: number;
   settlementAmount: number;
   status: TransferStatus;
   history: { status: TransferStatus; at: string; note?: string }[];
   createdAt: string;
   updatedAt: string;
+  /** Copied from the provider so the frontend pay-sheet never needs a 2nd fetch. */
+  instructions?: PaymentInstruction["instructions"];
+  paymentExpiresAt?: string;
   pollarTxHash?: string;
   pollarWallet?: string;
+  pollarMode?: "real" | "mock";
 }
 
 export interface ReconciliationRecord {

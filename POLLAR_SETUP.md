@@ -15,6 +15,7 @@ Backend keys live in gitignored `.env` files (never committed, never in `web/`).
 6. [Troubleshooting](#6-troubleshooting)
 7. [Costs on testnet](#7-costs-on-testnet)
 8. [Judge demo script (2 minutes)](#8-judge-demo-script-2-minutes)
+9. [Going live checklist (security)](#9-going-live-checklist-security)
 
 ---
 
@@ -51,8 +52,15 @@ where to click and how to confirm it worked.
 POLLAR_PUBLISHABLE_KEY=pub_testnet_…
 POLLAR_SECRET_KEY=sec_testnet_…
 
+# operator gate (required for pilot/live, optional locally)
+OPERATOR_API_KEY=<random-32-chars>
+# live webhooks only
+WEBHOOK_SECRET=<random-32-chars>
+ALLOWED_ORIGINS=http://localhost:5173
+
 # web/.env (frontend — publishable ONLY)
 VITE_POLLAR_PUBLISHABLE_KEY=pub_testnet_…
+VITE_OPERATOR_KEY=<same-as-OPERATOR_API_KEY>
 ```
 
 **Confirm:** backend logs `pollarMode: real`. Verify without printing secrets:
@@ -191,6 +199,18 @@ server-side with the secret key; without keys it degrades to labeled mocks so de
 | Wallet can't receive USDC | Missing trustline | Enable USDC in Tokens & Trustlines (§2 step 4) |
 | `SDK_AUTH_TOKEN_EXPIRED` (401) | Stale session | Re-login, re-verify via `/tokens/verify` |
 | Rate-limit (1,000 req/day testnet) | Heavy testing | Wait for UTC reset or request an increase |
+| `operator auth required` (401) on verify/settle | `OPERATOR_API_KEY` set, key not sent | Add `-H "x-operator-key: $OPERATOR_API_KEY"` (curl) or `VITE_OPERATOR_KEY` (web) |
+| `invalid webhook signature` (401) in live | Wrong secret / clock skew / body rewritten | Check `WEBHOOK_SECRET`, NTP clock, and that no proxy re-serializes JSON |
+
+---
+
+## 9. Going live checklist (security)
+
+1. `OPERATOR_API_KEY` + `WEBHOOK_SECRET`: random 32+ chars, stored in the secret manager, never in `web/` (only `VITE_OPERATOR_KEY` mirrors the operator key).
+2. `ALLOWED_ORIGINS=https://<your-domain>` — never leave empty in prod.
+3. `MODE=live` + `POLLAR_ENV=live` with `pub/sec_mainnet_` keys (never mix testnet/mainnet).
+4. Confirm: unsigned live webhook → `401`, operator POST without key → `401`, health/track still public.
+5. See [SECURITY.md](SECURITY.md) for the full model.
 
 ---
 

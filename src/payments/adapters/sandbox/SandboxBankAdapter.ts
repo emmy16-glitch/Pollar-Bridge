@@ -77,7 +77,7 @@ export class SandboxBankProvider implements LocalRailProvider {
   async getPaymentStatus(paymentId: string): Promise<PaymentStatus> {
     const p = this.payments.get(paymentId);
     if (!p) throw new Error(`Unknown payment: ${paymentId}`);
-    return { paymentId, status: p.status };
+    return { paymentId, status: p.status, raw: { reference: p.reference, amount: p.amount } };
   }
 
   // Test helper: simulate user paying (detection, NOT verification).

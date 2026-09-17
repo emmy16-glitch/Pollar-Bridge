@@ -35,37 +35,47 @@ export interface HandoffReceipt {
   bolivia: { status: "mocked"; note: string; payoutRef: string };
 }
 
-const env = (process.env.POLLAR_ENV === "live" ? "live" : "testnet") as "testnet" | "live";
-const publishableKey = process.env.POLLAR_PUBLISHABLE_KEY ?? process.env.POLLAR_API_KEY ?? "";
-const secretKey = process.env.POLLAR_SECRET_KEY ?? "";
+function pollarEnvValue(): "testnet" | "live" {
+  return (process.env.POLLAR_ENV === "live" ? "live" : "testnet") as "testnet" | "live";
+}
+
+function publishableKeyValue(): string {
+  return process.env.POLLAR_PUBLISHABLE_KEY ?? process.env.POLLAR_API_KEY ?? "";
+}
+
+function secretKeyValue(): string {
+  return process.env.POLLAR_SECRET_KEY ?? "";
+}
 
 function stellarMockHash(): string {
   return randomBytes(32).toString("hex").toUpperCase(); // 64 hex chars, no 0x
 }
 
 export function pollarMode(): "real" | "mock" {
-  return publishableKey.startsWith("pub_") ? "real" : "mock";
+  return publishableKeyValue().startsWith("pub_") ? "real" : "mock";
 }
 
 export function pollarEnv(): string {
-  return env;
+  return pollarEnvValue();
 }
 
 // G-address style mock (56 chars, starts with G) when no real wallet exists yet.
 export async function ensureWallet(ownerRef: string): Promise<string> {
-  void ownerRef;
-  if (pollarMode() === "mock" || env === "testnet") {
+  if (pollarMode() === "mock") {
     const body = randomBytes(32).toString("base64").replace(/[^A-Z2-7]/g, "A").slice(0, 55);
     return `G${body}`;
   }
-  // Real path: frontend creates the wallet via @pollar/react login();
-  // backend only funds/settles. Return ownerRef so caller passes the real address.
-  return ownerRef;
+  // Real path: deterministic Stellar-shaped address derived from the transfer
+  // ref so retries are stable; backend only funds/settles, the frontend
+  // (@pollar/react login) owns the actual user wallet.
+  const seed = Buffer.from(`pollar-real-${ownerRef}`).toString("base64").replace(/[^A-Z2-7]/g, "A");
+  return `G${(seed + "A".repeat(55)).slice(0, 55)}`;
 }
 
 // Deferred activation: our PAYMENT_VERIFIED == KYC/funding-approved event.
 // Calls Pollar Server with the SECRET key. Never call from the browser.
 export async function fundDeferredWallet(publicKey: string): Promise<{ funded: boolean; mode: "real" | "mock" }> {
+  const secretKey = secretKeyValue();
   if (!secretKey || !publicKey.startsWith("G")) return { funded: true, mode: "mock" };
   try {
     const res = await fetch("https://server.api.pollar.xyz/v1/wallets/fund", {
@@ -100,6 +110,7 @@ export async function settleUsdc(wallet: string, amountUsdc: number): Promise<Po
   // (runTx('payment', ...)) once the wallet is funded. Backend records + reconciles.
   // We still return a Stellar-style hash so the demo timeline looks exactly
   // like testnet explorer output.
+  const env = pollarEnvValue();
   return { wallet, amountUsdc, env, txHash: stellarMockHash(), mode: pollarMode() };
 }
 
