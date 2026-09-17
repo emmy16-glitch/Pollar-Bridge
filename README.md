@@ -85,7 +85,7 @@ How each organizer rule is satisfied:
 ```
                     ┌─────────────────────────────────┐
                     │           Web clients            │
-                    │  sender · recipient · operator   │  web/ (@pollar/react)
+                    │  sender · recipient · operator   │  web/ (Next.js portal)
                     └───────────────┬─────────────────┘
                                     │  REST /api
                     ┌───────────────▼─────────────────┐
@@ -173,13 +173,13 @@ cp .env.example .env        # fill in POLLAR_PUBLISHABLE_KEY / POLLAR_SECRET_KEY
 npm run dev                 # backend on :4000
 ```
 
-**Frontend demo** (sender · tracker · operator · Pollar wallet):
+**Frontend portal** (Next.js: send · track · history · wallet · operator):
 
 ```bash
 cd web
-cp .env.example .env        # VITE_API_URL + VITE_POLLAR_PUBLISHABLE_KEY only
+cp .env.example .env.local  # BACKEND_URL + OPERATOR_API_KEY (empty for demo)
 npm install
-npm run dev                 # :5173 (backend must run on :4000)
+npm run dev                 # :3000 (backend must run on :4000)
 ```
 
 **Environment variables:**
@@ -189,13 +189,13 @@ npm run dev                 # :5173 (backend must run on :4000)
 | `PORT` | backend `.env` | no (`4000`) | API listen port |
 | `MODE` | backend `.env` | no (`sandbox`) | `sandbox` \| `pilot` \| `live` |
 | `POLLAR_ENV` | backend `.env` | no (`testnet`) | Stellar network label |
-| `POLLAR_PUBLISHABLE_KEY` | backend `.env` + `web/.env` | for real mode | `pub_testnet_…` — safe for browsers |
+| `POLLAR_PUBLISHABLE_KEY` | backend `.env` | for real mode | `pub_testnet_…` — safe for browsers |
 | `POLLAR_SECRET_KEY` | backend `.env` only | for real funding | `sec_testnet_…` — **never** in `web/` |
 | `OPERATOR_API_KEY` | backend `.env` | pilot/live yes, demo no | Gates `POST /operator/*`, `POST /transfers/:id/settle`, `PATCH /corridors/:id` via `x-operator-key` |
 | `WEBHOOK_SECRET` | backend `.env` | live yes | HMAC-SHA256 over `<timestamp>.<raw-body>`; headers `x-webhook-signature` + `x-webhook-timestamp` |
 | `ALLOWED_ORIGINS` | backend `.env` | no | Comma allowlist; empty = allow all (dev only — set in prod) |
-| `VITE_API_URL` | `web/.env` | no (defaults to `http://localhost:4000/api`) | backend base URL |
-| `VITE_OPERATOR_KEY` | `web/.env` | must match backend when set | Sent as `x-operator-key` on operator buttons |
+| `BACKEND_URL` | `web/.env.local` | no (defaults to `http://localhost:4000/api`) | Express backend base URL proxied by `web/src/app/api/*` |
+| `OPERATOR_API_KEY` (web) | `web/.env.local` | must match backend when set | Forwarded as `x-operator-key` on verify/settle/reject + corridor toggles |
 
 Full key setup, funding, and troubleshooting: [POLLAR_SETUP.md](POLLAR_SETUP.md).
 Security semantics (auth, webhooks, rate limits, secret handling): [SECURITY.md](SECURITY.md).
@@ -294,7 +294,7 @@ curl -N $BASE/transfers/<transferId>/events
 ```
 
 With `OPERATOR_API_KEY` set, add `-H 'x-operator-key: $OPERATOR_API_KEY'` to the
-operator/settle calls. Web frontend sends it automatically from `VITE_OPERATOR_KEY`.
+operator/settle calls. Web portal sends it automatically from its `OPERATOR_API_KEY`.
 
 Or run the whole flow automatically: `bash scripts/e2e.sh` (28 checks, fails fast).
 
@@ -327,10 +327,11 @@ Pollar-Bridge/
 │   ├── routes/                # corridors, quotes, transfers (+SSE), operator, extra, health
 │   └── store/                 # memoryStore, auditLog, transferEvents
 ├── tests/                     # contract, e2e, hackathon, spec, security (33)
-└── web/                       # @pollar/react demo frontend
-    ├── src/api.ts             # typed backend client (+ operator key)
-    ├── src/App.tsx            # PollarProvider + Journey/Track/Operator/Wallet
-    └── src/views/             # Journey, TrackerPanel, OperatorCockpit, PublicTrack, WalletPanel
+└── web/                       # Next.js role-based portal (proxies Express backend)
+    ├── src/lib/backend.ts       # backend base URL + operator-key forwarding
+    ├── src/lib/adapters.ts      # backend → UI shape translation
+    ├── src/app/api/*            # thin proxies (corridors, providers, transfers, audit, reconciliation, wallet)
+    └── src/app/                 # send, track, history, wallet, operator pages
 ```
 
 ---
