@@ -168,6 +168,9 @@ export interface Transfer {
   quoteId: string;
   paymentId: string;
   reference: string;
+  // UNIQUE EDGE: public share token for recipient tracking links.
+  // Safe to put in a URL — reveals status/timeline only, never PII/secrets.
+  shareToken: string;
   sourceAmount: number;
   totalRequired: number;
   settlementAmount: number;

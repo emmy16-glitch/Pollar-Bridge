@@ -55,6 +55,7 @@ export function describeProvider(name: string, makeProvider: () => LocalRailProv
           quoteId: "q_test",
           paymentId: "pay_test",
           reference: "PB-TEST",
+          shareToken: "testtoken123",
           sourceAmount: 10000,
           totalRequired: 10000,
           settlementAmount: 6,

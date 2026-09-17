@@ -26,6 +26,19 @@ npm test           # contract + e2e tests
 - `POST /api/transfers/:id/settle` — only after `PAYMENT_VERIFIED`
 - `GET /api/transfers/:id/reconciliation`
 - Operator (sandbox): `POST /api/operator/payments/:paymentId/detected|verify|reject`
+- `GET /api/routes/recommend?country=NG&amount=100000` — smart rail ranking (cheapest/fastest)
+- `GET /api/transfers/:id/handoff` — clean Africa→Pollar→BOB-mock receipt for judges
+- `GET /api/track/:token` — public recipient tracking link (no PII)
+- `POST /api/webhooks/:provider` — live-provider webhook skeleton (HMAC-enforced in live mode)
+
+## Pollar wiring (testnet)
+
+Frontend uses `@pollar/react` with `POLLAR_PUBLISHABLE_KEY` (`pub_testnet_...` from
+https://dashboard.pollar.xyz → Build → API Keys). Backend holds `POLLAR_SECRET_KEY`
+(`sec_testnet_...`) server-side only and triggers Deferred wallet funding
+(`POST /v1/wallets/fund`) when the African payment reaches `PAYMENT_VERIFIED`.
+No keys = clearly-labeled Stellar-style mocks, so the demo never breaks.
+The BOB payout is **always mocked** — the real BOB ramp (Stereum) is Pollar mainnet-side.
 
 Demo flow:
 

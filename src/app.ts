@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import type { Container } from "./container.js";
 import { corridorRoutes } from "./routes/corridors.js";
+import { extraRoutes } from "./routes/extra.js";
 import { healthRoutes } from "./routes/health.js";
 import { operatorRoutes } from "./routes/operator.js";
 import { quoteRoutes } from "./routes/quotes.js";
@@ -25,6 +26,7 @@ export function buildApp(c: Container): express.Express {
   api.use(quoteRoutes(c));
   api.use(transferRoutes(c));
   api.use(operatorRoutes(c));
+  api.use(extraRoutes(c));
   app.use("/api", api);
 
   app.get("/", (_req, res) =>

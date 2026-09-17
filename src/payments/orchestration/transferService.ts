@@ -5,7 +5,7 @@ import type { ProviderRegistry } from "../providers/providerRegistry.js";
 import { MemoryStore } from "../../store/memoryStore.js";
 import { QuoteService } from "./quoteService.js";
 import { assertTransition } from "./stateMachine.js";
-import { ensureWallet, settleUsdc, submitPollarTransfer } from "../pollar/pollarService.js";
+import { buildHandoffReceipt, ensureWallet, fundDeferredWallet, settleUsdc, submitPollarTransfer } from "../pollar/pollarService.js";
 
 function now(): string {
   return new Date().toISOString();
@@ -36,6 +36,7 @@ export class TransferService {
       quoteId: quote.quoteId,
       paymentId: "",
       reference,
+      shareToken: uuid().replace(/-/g, "").slice(0, 12),
       sourceAmount,
       totalRequired: quote.totalRequired,
       settlementAmount: quote.settlementAmount,
@@ -100,11 +101,13 @@ export class TransferService {
     if (t.status !== "PAYMENT_VERIFIED") throw new Error("USDC releases only after PAYMENT_VERIFIED");
     stamp(t, "USDC_SETTLEMENT_PENDING");
     const wallet = await ensureWallet(t.transferId);
+    // Deferred funding trigger: African verification approves the Pollar wallet.
+    const fund = await fundDeferredWallet(wallet);
+    stamp(t, "USDC_SETTLED_TO_POLLAR", `wallet=${wallet} fund=${fund.mode}`);
     const s = await settleUsdc(wallet, t.settlementAmount);
     t.pollarWallet = s.wallet;
     t.pollarTxHash = s.txHash;
-    stamp(t, "USDC_SETTLED_TO_POLLAR", s.txHash);
-    stamp(t, "POLLAR_TRANSFER_SUBMITTED");
+    stamp(t, "POLLAR_TRANSFER_SUBMITTED", s.txHash);
     const sub = await submitPollarTransfer(s.txHash);
     if (!sub.confirmed) {
       stamp(t, "PAYOUT_FAILED", "pollar transfer not confirmed");
@@ -124,6 +127,34 @@ export class TransferService {
 
   get(id: string): Transfer {
     return this.store.getTransfer(id);
+  }
+
+  getByShareToken(token: string): Transfer {
+    const found = this.store.listTransfers().find((t) => t.shareToken === token);
+    if (!found) throw new Error("Unknown tracking link");
+    return found;
+  }
+
+  // Clean handoff receipt for judges/frontend: African rail + Pollar + mocked BOB.
+  getHandoff(transferId: string) {
+    const t = this.store.getTransfer(transferId);
+    const corridor = getCorridor(t.corridorId);
+    if (!t.pollarWallet || !t.pollarTxHash) throw new Error("Transfer not yet settled to Pollar");
+    return buildHandoffReceipt({
+      transferId: t.transferId,
+      country: corridor.sourceCountry,
+      rail: corridor.sourceRail,
+      provider: corridor.providerId,
+      reference: t.reference,
+      settlement: {
+        wallet: t.pollarWallet,
+        txHash: t.pollarTxHash,
+        amountUsdc: t.settlementAmount,
+        env: (process.env.POLLAR_ENV === "live" ? "live" : "testnet"),
+        mode: t.pollarTxHash.startsWith("0x") ? "mock" : "mock",
+      },
+      payoutRef: t.history.find((h) => h.status === "COMPLETED")?.note ?? "BOB-MOCK-pending",
+    });
   }
 
   list(): Transfer[] {
