@@ -1,0 +1,46 @@
+import type { TransferStatus } from "../../types.js";
+
+// Provider-independent lifecycle (spec Layer 6).
+const FORWARD: Record<TransferStatus, TransferStatus[]> = {
+  PAYMENT_INSTRUCTIONS_ISSUED: ["QUOTE_CREATED"],
+  AWAITING_LOCAL_PAYMENT: ["PAYMENT_INSTRUCTIONS_ISSUED"],
+  PAYMENT_DETECTED: ["AWAITING_LOCAL_PAYMENT"],
+  PAYMENT_UNDER_REVIEW: ["PAYMENT_DETECTED", "AWAITING_LOCAL_PAYMENT"],
+  PAYMENT_VERIFIED: ["PAYMENT_UNDER_REVIEW", "PAYMENT_DETECTED"],
+  USDC_SETTLEMENT_PENDING: ["PAYMENT_VERIFIED"],
+  USDC_SETTLED_TO_POLLAR: ["USDC_SETTLEMENT_PENDING"],
+  POLLAR_TRANSFER_SUBMITTED: ["USDC_SETTLED_TO_POLLAR"],
+  POLLAR_TRANSFER_CONFIRMED: ["POLLAR_TRANSFER_SUBMITTED"],
+  DESTINATION_PAYOUT_PENDING: ["POLLAR_TRANSFER_CONFIRMED"],
+  COMPLETED: ["DESTINATION_PAYOUT_PENDING", "POLLAR_TRANSFER_CONFIRMED"],
+  PAYMENT_EXPIRED: ["QUOTE_CREATED", "PAYMENT_INSTRUCTIONS_ISSUED", "AWAITING_LOCAL_PAYMENT"],
+  PAYMENT_REJECTED: ["PAYMENT_DETECTED", "PAYMENT_UNDER_REVIEW", "AWAITING_LOCAL_PAYMENT"],
+  SETTLEMENT_FAILED: ["USDC_SETTLEMENT_PENDING", "PAYMENT_VERIFIED"],
+  PAYOUT_FAILED: ["DESTINATION_PAYOUT_PENDING", "POLLAR_TRANSFER_CONFIRMED"],
+  REFUND_PENDING: ["PAYMENT_VERIFIED", "PAYMENT_REJECTED", "SETTLEMENT_FAILED", "PAYOUT_FAILED"],
+  REFUNDED: ["REFUND_PENDING"],
+  QUOTE_CREATED: [],
+};
+
+const TERMINAL: Set<TransferStatus> = new Set([
+  "COMPLETED",
+  "PAYMENT_EXPIRED",
+  "PAYMENT_REJECTED",
+  "REFUNDED",
+]);
+
+export function canTransition(from: TransferStatus, to: TransferStatus): boolean {
+  if (from === to) return true;
+  if (TERMINAL.has(from)) return false;
+  const allowedFrom = FORWARD[to as keyof typeof FORWARD];
+  if (!allowedFrom) return false;
+  return allowedFrom.includes(from);
+}
+
+export function assertTransition(from: TransferStatus, to: TransferStatus): void {
+  if (!canTransition(from, to)) {
+    throw new Error(`Illegal transfer transition: ${from} -> ${to}`);
+  }
+}
+
+export const TERMINAL_STATUSES = [...TERMINAL];
