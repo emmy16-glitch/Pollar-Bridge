@@ -1,4 +1,7 @@
-web/
+# NOTE: do NOT ignore web/ here — the "pollar-bridge" Vercel project uses
+# Root Directory=web, and patterns in this file are matched from the repo
+# root, which stripped the portal sources out of its own deployment
+# (commit 014a6af failed with "No Next.js version detected").
 docs/
 tests/
 coverage/
