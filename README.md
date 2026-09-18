@@ -15,7 +15,11 @@ payment state machine, reconciliation, and a Pollar settlement boundary.
 checks green · frontend builds clean. Read [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md)
 for what is real vs sandbox, [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) for the x402 machine rail,
 [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof, [SECURITY.md](SECURITY.md) for the
-security model.
+<p align="center">
+    <a href="https://github.com/emmy16-glitch/Pollar-Bridge/blob/main/video/demo.mp4" target="_blank">
+    <img src="video/demo-poster.png" alt="PollarBridge demo video — tap to play (51s)" width="720" />
+  </a>
+</p>
 
 ## Brand / logo
 
@@ -244,8 +248,6 @@ The app runs as two Vercel projects in the same team:
 | `pollar-bridge-api` | https://pollar-bridge-api.vercel.app | Express backend as one serverless function | `MODE`, `POLLAR_ENV`, `POLLAR_*`, provider keys, `OPERATOR_API_KEY`, `WEBHOOK_SECRET`, `AGENT_SETTLE_WALLET` |
 
 How the deploy works: `api/send.js` is a thin serverless handler that builds the same
-- Demo video (1080p, 51s, male voiceover): [`video/demo.mp4`](video/demo.mp4) — narration with the problem, the x402 agent rail, and the safety story.
-
 Express app (`src/app.ts` → `buildApp(buildContainer())`) and caches it per warm lambda;
 `vercel.json` rewrites every `/api/*` path (and `/`) to that handler. The store is
 in-memory, so state resets on cold starts — fine for the sandbox demo, and the reason a
@@ -427,6 +429,10 @@ Pollar-Bridge/
     ├── src/app/api/*            # thin proxies (corridors, providers, transfers, audit,
     │                            # reconciliation, wallet, agent, pollar, earn, kyc)
     └── src/app/                 # send, track, history, wallet, earn, kyc, agent, operator pages
+├── video/                       # demo production (Remotion project; details in video/)
+│   ├── demo.mp4                 # rendered demo video (51s, 1080p)
+│   ├── demo-poster.png          # poster thumbnail linked in the README
+│   └── src/                     # Remotion scenes + package.json (npm run render)
 ```
 
 ---
