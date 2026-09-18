@@ -348,6 +348,7 @@ Pollar-Bridge/
 ├── package.json               # backend deps + scripts
 ├── tsconfig.json  vitest.config.ts
 ├── scripts/e2e.sh             # live-API end-to-end verification (48 checks)
+├── scripts/web-smoke.sh       # portal smoke: pages + proxy paths + 402 rail (27 checks)
 ├── src/
 │   ├── index.ts               # server entry (dotenv + listen)
 │   ├── app.ts                 # Express app, CORS, raw-body, headers, logging, errors
@@ -398,10 +399,12 @@ Pollar-Bridge/
 ## 10. Testing
 
 ```bash
-npm run typecheck          # strict TS, backend
-npm test                   # vitest: 45 tests
-bash scripts/e2e.sh        # live API: 48 endpoint checks against a booted server
-cd web && npm run build    # frontend typecheck + production build
+npm run typecheck              # strict TS, backend
+npm test                       # vitest: 45 tests
+bash scripts/e2e.sh            # live backend API: 48 endpoint checks
+cd web && npm run build        # frontend typecheck + production build
+# with both servers running:
+bash scripts/web-smoke.sh      # portal smoke: 13 pages + 11 proxies + 402/201 rail
 ```
 
 Test files:
@@ -509,4 +512,4 @@ compliance are all in place — never because sandbox tests pass.
 | 4 | Open the handoff receipt / `/track/:token` | "Public tracking, no PII; BOB leg explicitly mocked per the rules." |
 | 5 | Open `/agent`, click Quote then Mint | "**No other team has this**: an app/AI agent buys the corridor — 402 bill, pay with memo, 201 transfer, audited as actor `agent`." |
 | 6 | Open `/earn` and `/kyc` | "Same SDK surface for yield (Blend/DeFindex) and identity; live values when keys exist, labeled sandbox otherwise." |
-| 7 | `bash scripts/e2e.sh` | "48 checks green, including the 402→201 rail and the 409 replay guard." |
+| 7 | `bash scripts/e2e.sh` + `bash scripts/web-smoke.sh` | "48 backend checks + 27 portal checks green, including the 402→201 rail and the 409 replay guard." |

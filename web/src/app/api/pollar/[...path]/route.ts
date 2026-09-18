@@ -3,9 +3,17 @@ import { backendBase, operatorKey } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
 
+// The backend mounts the Pollar surfaces at the API root (/api/ramps/quote,
+// /api/earn/*, /api/kyc/*, /api/users/register) and the status probe at
+// /api/pollar/status. So the portal's /api/pollar/<x> prefix maps to /api/<x>,
+// with `status` as the one exception — stripping it would hit /api/status.
+function backendPathFor(path: string): string {
+  return path === "/status" ? "/pollar/status" : path;
+}
+
 async function proxyPollar(path: string, request: Request, method: string): Promise<NextResponse> {
   const url = new URL(request.url);
-  const target = `${backendBase()}${path}${url.search}`;
+  const target = `${backendBase()}${backendPathFor(path)}${url.search}`;
   try {
     const body = method === "GET" || method === "HEAD" ? undefined : await request.text();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
