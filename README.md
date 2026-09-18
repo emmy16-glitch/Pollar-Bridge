@@ -16,9 +16,7 @@ checks green · frontend builds clean. Read [docs/POLLAR_INTEGRATION.md](docs/PO
 for what is real vs sandbox, [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) for the x402 machine rail,
 [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof, [SECURITY.md](SECURITY.md) for the
 <p align="center">
-    <a href="https://github.com/emmy16-glitch/Pollar-Bridge/blob/main/video/demo.mp4" target="_blank">
-    <img src="video/demo-poster.png" alt="PollarBridge demo video — tap to play (51s)" width="720" />
-  </a>
+  <img src="video/demo.gif" alt="PollarBridge demo video — tap play to watch" width="560" />
 </p>
 
 ## Brand / logo
