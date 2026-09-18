@@ -7,3 +7,8 @@ coverage/
 *.tsbuildinfo
 .vercel
 .env*
+
+video/out/
+video/public/
+video/package-lock.json
+video/node_modules/

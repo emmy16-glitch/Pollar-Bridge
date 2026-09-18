@@ -244,6 +244,8 @@ The app runs as two Vercel projects in the same team:
 | `pollar-bridge-api` | https://pollar-bridge-api.vercel.app | Express backend as one serverless function | `MODE`, `POLLAR_ENV`, `POLLAR_*`, provider keys, `OPERATOR_API_KEY`, `WEBHOOK_SECRET`, `AGENT_SETTLE_WALLET` |
 
 How the deploy works: `api/send.js` is a thin serverless handler that builds the same
+- Demo video (1080p, 51s, male voiceover): [`video/demo.mp4`](video/demo.mp4) — narration with the problem, the x402 agent rail, and the safety story.
+
 Express app (`src/app.ts` → `buildApp(buildContainer())`) and caches it per warm lambda;
 `vercel.json` rewrites every `/api/*` path (and `/`) to that handler. The store is
 in-memory, so state resets on cold starts — fine for the sandbox demo, and the reason a
