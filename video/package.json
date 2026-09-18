@@ -1,0 +1,14 @@
+{
+  "name": "pollar-bridge-demo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "render": "remotion render src/index.ts PollarBridgeDemo out/pollar-bridge-demo.mp4",
+    "studio": "remotion studio src/index.ts"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.4",
+    "remotion": "4.0.4",
+    "zod": "4.5.4"
+  }
+}
