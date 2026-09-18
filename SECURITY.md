@@ -7,16 +7,16 @@ Code: `src/security.ts`, `src/app.ts`, `src/routes/*`. Tests: `tests/security.te
 
 | Zone | Sees secrets? | Examples |
 |---|---|---|
-| Browser (`web/`) | **Never.** Only `VITE_API_URL`, `VITE_POLLAR_PUBLISHABLE_KEY` (`pub_…`), optional `VITE_OPERATOR_KEY` | Sender journey, tracker, operator cockpit |
-| Backend env / secret manager | **Yes, server-side only** | `POLLAR_SECRET_KEY` (`sec_…`), `OPERATOR_API_KEY`, `WEBHOOK_SECRET`, provider keys |
+| Browser (`web/`) | **Never.** Only `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` (`pub_…`); server-side proxies carry `OPERATOR_API_KEY` | Sender journey, tracker, operator cockpit |
+| Backend env / secret manager (incl. Vercel env vars on `pollar-bridge-api`) | **Yes, server-side only** | `POLLAR_SECRET_KEY` (`sec_…`), `OPERATOR_API_KEY`, `WEBHOOK_SECRET`, provider keys |
 | Public links | Status only, no PII/secrets | `GET /track/:token`, handoff receipt |
 
 Country/provider config references credential **names**, never values.
 
 ## 2. Operator auth (money-moving routes)
 
-Set `OPERATOR_API_KEY` in backend `.env` (and `VITE_OPERATOR_KEY` in `web/.env` so the
-cockpit sends it as `x-operator-key`).
+Set `OPERATOR_API_KEY` in backend `.env` (and the same value as `OPERATOR_API_KEY` in
+`web/.env.local` — the portal's proxy routes forward it as `x-operator-key`).
 
 | Route | Auth |
 |---|---|

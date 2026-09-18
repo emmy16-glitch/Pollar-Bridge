@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="PollarBridge">
+  <defs>
+    <linearGradient id="pb-bg" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#161D38"/>
+      <stop offset="1" stop-color="#0A0E1D"/>
+    </linearGradient>
+    <linearGradient id="pb-violet" x1="14" y1="16" x2="50" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="pb-emerald" x1="14" y1="48" x2="50" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34D399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#pb-bg)"/>
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="15.25" stroke="#8B5CF6" stroke-opacity="0.35" stroke-width="1.5"/>
+  <!-- bridge deck -->
+  <path d="M14 41.5 H50" stroke="#3B4A6B" stroke-width="2" stroke-linecap="round"/>
+  <!-- Africa -> settlement arc (violet) -->
+  <path d="M15 41.5 C 23 18, 41 18, 49 41.5" stroke="url(#pb-violet)" stroke-width="4" stroke-linecap="round"/>
+  <!-- settlement -> Bolivia arc (emerald) -->
+  <path d="M15 47.5 C 23 27, 41 27, 49 47.5" stroke="url(#pb-emerald)" stroke-width="4" stroke-linecap="round" opacity="0.92"/>
+  <!-- anchor posts -->
+  <circle cx="15" cy="41.5" r="3.1" fill="#A78BFA"/>
+  <circle cx="49" cy="41.5" r="3.1" fill="#34D399"/>
+  <!-- keystone (verified settlement) -->
+  <circle cx="32" cy="26.5" r="3.3" fill="#F8FAFC"/>
+</svg>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 64" fill="none" role="img" aria-label="PollarBridge wordmark">
+  <defs>
+    <linearGradient id="wm-violet" x1="14" y1="16" x2="50" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="wm-emerald" x1="14" y1="48" x2="50" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34D399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="wm-text" x1="70" y1="14" x2="240" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#C7D2FE"/>
+    </linearGradient>
+  </defs>
+
+  <!-- mark -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#101736"/>
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="15.25" stroke="#8B5CF6" stroke-opacity="0.35" stroke-width="1.5"/>
+  <path d="M14 41.5 H50" stroke="#3B4A6B" stroke-width="2" stroke-linecap="round"/>
+  <path d="M15 41.5 C 23 18, 41 18, 49 41.5" stroke="url(#wm-violet)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M15 47.5 C 23 27, 41 27, 49 47.5" stroke="url(#wm-emerald)" stroke-width="4" stroke-linecap="round" opacity="0.92"/>
+  <circle cx="15" cy="41.5" r="3.1" fill="#A78BFA"/>
+  <circle cx="49" cy="41.5" r="3.1" fill="#34D399"/>
+  <circle cx="32" cy="26.5" r="3.3" fill="#F8FAFC"/>
+
+  <!-- wordmark -->
+  <text x="76" y="41" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.5" fill="url(#wm-text)">PollarBridge</text>
+
+  <!-- tagline -->
+  <text x="78" y="56" font-family="'Segoe UI', system-ui, -apple-system, sans-serif" font-size="10.5" font-weight="500" letter-spacing="1.6" fill="#7C8BB0">AFRICA → BOLIVIA · LOCAL RAILS → USDC</text>
+</svg>
+

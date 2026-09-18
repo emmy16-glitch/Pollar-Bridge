@@ -1,5 +1,7 @@
 # PollarBridge Africa
 
+<img src="web/public/logo-wordmark.svg" alt="PollarBridge — African local rails to Pollar USDC" width="460" />
+
 A **web-only, configurable payment-rail backend (+ demo frontend)** that connects African
 local money (bank, mobile money, P2P, agents) to **Pollar testnet wallets and USDC transfers**,
 with the final BOB payout mocked per hackathon rules.
@@ -8,11 +10,20 @@ Implements the architecture spec in `main (5).pdf`: a universal transfer engine 
 pluggable country configuration, corridor model, provider adapters, capability matrix,
 payment state machine, reconciliation, and a Pollar settlement boundary.
 
-**Status:** live on testnet · 45/45 backend tests green · 48/48 live-API e2e checks green ·
-frontend builds clean. Read [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md) for
-what is real vs sandbox, [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) for the x402 machine rail,
+**Status:** live on testnet · **hosted on Vercel** (`pollar-bridge-chi.vercel.app` portal +
+`pollar-bridge-api.vercel.app` backend) · 45/45 backend tests green · 48/48 live-API e2e
+checks green · frontend builds clean. Read [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md)
+for what is real vs sandbox, [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) for the x402 machine rail,
 [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof, [SECURITY.md](SECURITY.md) for the
 security model.
+
+## Brand / logo
+
+The mark is `web/public/logo.svg`: two arcs meeting at a keystone on a bridge deck.
+**Violet arc** = the African local leg (money in) · **emerald arc** = the Bolivian payout
+(money out) · **white keystone** = the verified settlement point where the two legs meet.
+The favicon (`web/src/app/icon.svg`), the sidebar/mobile header (`web/src/components/Logo.tsx`),
+and the social preview card (`web/src/app/opengraph-image.tsx`) all share the same geometry.
 
 ---
 
@@ -221,6 +232,41 @@ npm run dev                 # :3000 (backend must run on :4000)
 
 Full key setup, funding, and troubleshooting: [POLLAR_SETUP.md](POLLAR_SETUP.md).
 Security semantics (auth, webhooks, rate limits, secret handling): [SECURITY.md](SECURITY.md).
+
+### 5b. Hosted demo (Vercel)
+
+The app runs as two Vercel projects in the same team:
+
+| Project | URL | What it hosts | Key env vars |
+|---|---|---|---|
+| `pollar-bridge` | https://pollar-bridge-chi.vercel.app | Next.js portal | `BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `OPERATOR_API_KEY`, `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` |
+| `pollar-bridge-api` | https://pollar-bridge-api.vercel.app | Express backend as one serverless function | `MODE`, `POLLAR_ENV`, `POLLAR_*`, provider keys, `OPERATOR_API_KEY`, `WEBHOOK_SECRET`, `AGENT_SETTLE_WALLET` |
+
+How the deploy works: `api/send.js` is a thin serverless handler that builds the same
+Express app (`src/app.ts` → `buildApp(buildContainer())`) and caches it per warm lambda;
+`vercel.json` rewrites every `/api/*` path (and `/`) to that handler. The store is
+in-memory, so state resets on cold starts — fine for the sandbox demo, and the reason a
+persistent DB is Phase 3 (see §13). All env values are set per-environment in the Vercel
+dashboard (Project → Settings → Environment Variables) or via `vercel env add <KEY>
+<environment>`; **no secret is ever committed** — the repo keeps only `.env.example`
+templates.
+
+Deploy / redeploy:
+
+```bash
+# backend
+npx vercel link --project pollar-bridge-api
+npx vercel env add MODE production      # repeat per key (value on stdin)
+npx vercel --prod
+
+# portal (from web/)
+cd web && npx vercel link --project pollar-bridge
+npx vercel env add BACKEND_URL production   # https://pollar-bridge-api.vercel.app/api
+npx vercel --prod
+```
+
+After the first deploy, point `ALLOWED_ORIGINS` (backend) at the portal domain and
+`BACKEND_URL` (portal) at the API domain, then redeploy both.
 
 ---
 

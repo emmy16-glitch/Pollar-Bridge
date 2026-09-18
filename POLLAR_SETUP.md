@@ -59,9 +59,9 @@ OPERATOR_API_KEY=<random-32-chars>
 WEBHOOK_SECRET=<random-32-chars>
 ALLOWED_ORIGINS=http://localhost:5173
 
-# web/.env (frontend — publishable ONLY)
-VITE_POLLAR_PUBLISHABLE_KEY=pub_testnet_…
-VITE_OPERATOR_KEY=<same-as-OPERATOR_API_KEY>
+# web/.env.local (frontend — publishable ONLY, Next.js portal)
+NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY=pub_testnet_…
+OPERATOR_API_KEY=<same-as-OPERATOR_API_KEY>
 ```
 
 **Confirm:** backend logs `pollarMode: real`. Verify without printing secrets:
@@ -71,6 +71,21 @@ set -a; source .env; set +a
 node -e "import('./dist/payments/pollar/pollarService.js').then(m => console.log(m.pollarMode(), m.pollarEnv()))"
 # → real testnet
 ```
+
+**Hosted domains (Vercel, live):**
+
+- Portal: `https://pollar-bridge-chi.vercel.app`
+- Backend: `https://pollar-bridge-api.vercel.app`
+
+Add both to the dashboard's allowed-domains list (Build → Domains) and set
+`ALLOWED_ORIGINS=https://pollar-bridge.vercel.app` in the backend project's Vercel env
+vars. On Vercel the backend env values live per-environment under
+Project `pollar-bridge-api` → Settings → Environment Variables (`MODE`, `POLLAR_ENV`,
+`POLLAR_PUBLISHABLE_KEY`, `POLLAR_SECRET_KEY`, `POLLAR_API_KEY`, provider keys,
+`OPERATOR_API_KEY`, `WEBHOOK_SECRET`, `AGENT_SETTLE_WALLET`); the portal project
+`pollar-bridge` carries `BACKEND_URL=https://pollar-bridge-api.vercel.app/api`,
+`NEXT_PUBLIC_API_URL` (same), and `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` (publishable
+only). Secrets stay out of git — the repo keeps only `.env.example` templates.
 
 ### Step 2 — Configure allowed domains (Required)
 

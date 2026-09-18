@@ -6,7 +6,24 @@ import PollarProviderWrapper from "@/components/PollarProviderWrapper";
 
 export const metadata: Metadata = {
   title: "PollarBridge Africa — African Local Rails to Pollar USDC & Bolivian Payout",
-  description: "Send money from Africa to Bolivia. Pay locally, we verify and settle USDC, they receive BOB.",
+  description:
+    "Send money from Africa to Bolivia. Pay locally, we verify and settle USDC, they receive BOB.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
+  openGraph: {
+    title: "PollarBridge Africa — African Local Rails to Pollar USDC & Bolivian Payout",
+    description:
+      "Send money from Africa to Bolivia. Pay locally, we verify and settle USDC, they receive BOB.",
+    type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PollarBridge" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PollarBridge Africa",
+    description:
+      "Send money from Africa to Bolivia. Pay locally, we verify and settle USDC, they receive BOB.",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

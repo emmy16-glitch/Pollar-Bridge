@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Logo from "./Logo";
 import {
   Globe,
   Send,
@@ -120,12 +121,8 @@ export default function AppShell({ children }: AppShellProps) {
         {/* Brand & Badge */}
         <div className="p-5 border-b border-violet-900/20">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-emerald-400 p-0.5 shadow-lg shadow-violet-950/60 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-[#0D1224] rounded-[10px] flex items-center justify-center">
-                <span className="font-black text-lg bg-gradient-to-r from-violet-400 to-emerald-400 bg-clip-text text-transparent">
-                  PB
-                </span>
-              </div>
+            <div className="w-10 h-10 group-hover:scale-105 transition-transform">
+              <Logo size={40} />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -263,9 +260,7 @@ export default function AppShell({ children }: AppShellProps) {
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-emerald-400 flex items-center justify-center font-bold text-sm text-black">
-                PB
-              </div>
+              <Logo size={32} />
               <span className="font-bold text-white text-base">PollarBridge</span>
             </Link>
           </div>
