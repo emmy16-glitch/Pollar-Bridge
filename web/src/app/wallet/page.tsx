@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { truncateHash, formatDate } from "@/lib/formatters";
+import PollarWalletCard from "@/components/PollarWalletCard";
 
 export default function WalletPage() {
   const [loading, setLoading] = useState(true);
@@ -204,6 +205,9 @@ export default function WalletPage() {
             </div>
           </div>
         </div>
+
+        {/* Pollar SDK wallet (real) */}
+        <PollarWalletCard />
 
         {/* Transaction History */}
         <div className="rounded-3xl bg-[#0F162E] border border-slate-800 p-6 space-y-4 shadow-xl">

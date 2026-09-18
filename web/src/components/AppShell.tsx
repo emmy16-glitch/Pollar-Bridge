@@ -72,6 +72,9 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "My transfers", href: "/history", icon: History },
     { label: "Track a transfer", href: "/track", icon: Search },
     { label: "Wallet", href: "/wallet", icon: Wallet },
+    { label: "Earn", href: "/earn", icon: Sparkles },
+    { label: "Verify", href: "/kyc", icon: ShieldCheck },
+    { label: "Agent rail", href: "/agent", icon: Zap },
   ];
 
   const operatorNavItems = [

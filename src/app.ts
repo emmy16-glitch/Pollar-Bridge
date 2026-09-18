@@ -1,10 +1,12 @@
 import cors from "cors";
 import express from "express";
 import type { Container } from "./container.js";
+import { agentRoutes } from "./routes/agent.js";
 import { corridorRoutes } from "./routes/corridors.js";
 import { extraRoutes } from "./routes/extra.js";
 import { healthRoutes } from "./routes/health.js";
 import { operatorRoutes } from "./routes/operator.js";
+import { pollerRoutes } from "./routes/pollar.js";
 import { quoteRoutes } from "./routes/quotes.js";
 import { transferRoutes } from "./routes/transfers.js";
 import { redactSecrets } from "./security.js";
@@ -55,6 +57,8 @@ export function buildApp(c: Container): express.Express {
   api.use(transferRoutes(c));
   api.use(operatorRoutes(c));
   api.use(extraRoutes(c));
+  api.use(pollerRoutes(c));
+  api.use(agentRoutes(c));
   app.use("/api", api);
 
   app.get("/", (_req, res) =>

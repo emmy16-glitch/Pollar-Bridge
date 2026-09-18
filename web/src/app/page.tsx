@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import {
@@ -17,10 +17,32 @@ import {
   ChevronDown,
   Banknote,
   Wallet,
+  Zap,
 } from "lucide-react";
 import SectionHeading from "@/components/ui/SectionHeading";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Faq from "@/components/ui/Faq";
+
+function BobQuoteBadge() {
+  const [q, setQ] = useState<{ mode?: string; quote?: { estimatedAmount?: number; fee?: number }; quotes?: unknown } | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch("/api/pollar/ramps/quote?country=BO&amount=100&currency=USDC&direction=offramp", { cache: "no-store" });
+        setQ((await r.json()) as { mode?: string; quote?: { estimatedAmount?: number; fee?: number } });
+      } catch { setQ(null); }
+    })();
+  }, []);
+  if (!q) return <StatusBadge status="PENDING" label="BOB quote…" />;
+  const real = q.mode === "real";
+  const amt = q.quote ? `≈ ${q.quote.estimatedAmount} BOB` : "live quotes";
+  return (
+    <span className="inline-flex items-center gap-2">
+      <StatusBadge status={real ? "Active" : "SANDBOX"} label={real ? "live Pollar quote" : "sandbox"} />
+      <span className="text-[11px] font-mono text-slate-400">100 USDC → {amt}</span>
+    </span>
+  );
+}
 
 const CORRIDORS = [
   {
@@ -150,6 +172,13 @@ export default function LandingPage() {
               >
                 <Search className="w-4 h-4 text-violet-400" />
                 <span>Track a transfer</span>
+              </Link>
+              <Link
+                href="/agent"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0F162E] hover:bg-[#152042] text-violet-200 hover:text-white font-medium text-sm border border-violet-500/40 transition-all"
+              >
+                <Zap className="w-4 h-4 text-violet-300" />
+                <span>Agent rail (x402)</span>
               </Link>
             </div>
 
@@ -314,6 +343,9 @@ export default function LandingPage() {
             actionHref="/operator/corridors"
             actionLabel="Corridor admin"
           />
+          <div className="flex items-center gap-2">
+            <BobQuoteBadge />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {CORRIDORS.map((c) => (
               <div
