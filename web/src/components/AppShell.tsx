@@ -17,7 +17,10 @@ import {
   FileCheck2,
   FileText,
   ShieldCheck,
+  ChevronDown,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Menu,
   X,
   ExternalLink,
@@ -66,6 +69,19 @@ export default function AppShell({ children }: AppShellProps) {
   };
 
   const isOperatorRoute = pathname.startsWith("/operator") || pathname.startsWith("/corridors") || pathname.startsWith("/providers") || pathname.startsWith("/reconciliation");
+
+  // Desktop sidebar can collapse to an icon rail (toggle at the top).
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Staff zone is a collapsible dropdown. `staffOpen` follows the route:
+  // it starts open on staff pages and closed elsewhere, until the user
+  // toggles it manually (null = no override). The pending badge stays
+  // visible on the header even while collapsed, so reviews are never hidden.
+  const [staffOverride, setStaffOverride] = useState<boolean | null>(null);
+  const [mobileStaffOverride, setMobileStaffOverride] = useState<boolean | null>(null);
+  const staffOpen = staffOverride ?? isOperatorRoute;
+  const mobileStaffOpen = mobileStaffOverride ?? isOperatorRoute;
+  const setStaffOpen = (v: boolean) => setStaffOverride(v);
+  const setMobileStaffOpen = (v: boolean) => setMobileStaffOverride(v);
 
   const senderNavItems = [
     { label: "Overview", href: "/", icon: Globe },
@@ -117,48 +133,81 @@ export default function AppShell({ children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-[#080B14] text-slate-100 flex flex-col md:flex-row">
       {/* Desktop Left Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 lg:w-72 border-r border-violet-900/20 bg-[#0A0E1F]/90 backdrop-blur-xl shrink-0 sticky top-0 h-screen overflow-y-auto custom-scrollbar z-30">
+      <aside className={`hidden md:flex flex-col border-r border-violet-900/20 bg-[#0A0E1F]/90 backdrop-blur-xl shrink-0 sticky top-0 h-screen overflow-y-auto custom-scrollbar z-30 transition-[width] duration-200 ${sidebarCollapsed ? "w-[68px]" : "w-64 lg:w-72"}`}>
         {/* Brand & Badge */}
-        <div className="p-5 border-b border-violet-900/20">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 group-hover:scale-105 transition-transform">
-              <Logo size={40} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-white tracking-tight">PollarBridge</span>
+        <div className={`border-b border-violet-900/20 ${sidebarCollapsed ? "px-2 py-4 flex flex-col items-center gap-3" : "p-5"}`}>
+          <div className={`flex items-center ${sidebarCollapsed ? "flex-col gap-2" : "gap-2 w-full"}`}>
+            <Link href="/" className={`flex items-center group ${sidebarCollapsed ? "" : "gap-3 flex-1 min-w-0"}`}>
+              <div className="w-10 h-10 group-hover:scale-105 transition-transform shrink-0">
+                <Logo size={40} />
               </div>
-              <p className="text-xs text-slate-400 font-mono">Africa → Bolivia</p>
-            </div>
-          </Link>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-lg text-white tracking-tight truncate">PollarBridge</span>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono">Africa → Bolivia</p>
+                </div>
+              )}
+            </Link>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent hover:border-slate-700 transition-colors shrink-0"
+            >
+              {sidebarCollapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+            </button>
+          </div>
 
           {/* Strong Environment Badge */}
-          <div className="mt-4 flex items-center justify-between px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
-            <span className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          {!sidebarCollapsed && (
+            <div className="mt-4 flex items-center justify-between px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-mono">
+              <span className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                TESTNET DEMO
               </span>
-              TESTNET DEMO
-            </span>
-            <span className="text-[10px] text-emerald-500/80">Stellar / Pollar</span>
-          </div>
+              <span className="text-[10px] text-emerald-500/80">Stellar / Pollar</span>
+            </div>
+          )}
         </div>
 
         {/* Navigation Groups */}
-        <div className="flex-1 px-3 py-4 space-y-6">
+        <div className={`flex-1 py-4 space-y-6 ${sidebarCollapsed ? "px-2" : "px-3"}`}>
           {/* Main Sender Nav */}
           <div>
-            <div className="px-3 mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase font-mono">
-                Transfers & Wallet
-              </span>
-              <span className="text-[10px] text-violet-400/80 font-mono">Public / User</span>
-            </div>
-            <nav className="space-y-1">
+            {!sidebarCollapsed && (
+              <div className="px-3 mb-2 flex items-center justify-between">
+                <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase font-mono">
+                  Transfers &amp; Wallet
+                </span>
+                <span className="text-[10px] text-violet-400/80 font-mono">Public / User</span>
+              </div>
+            )}
+            <nav className={sidebarCollapsed ? "space-y-1.5" : "space-y-1"}>
               {senderNavItems.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href;
+                if (sidebarCollapsed) {
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={item.label}
+                      aria-label={item.label}
+                      className={`flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-all ${
+                        active
+                          ? "bg-violet-600/20 text-violet-300 border border-violet-500/30"
+                          : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <Icon className="w-[18px] h-[18px]" />
+                    </Link>
+                  );
+                }
                 return (
                   <Link
                     key={item.href}
@@ -179,70 +228,120 @@ export default function AppShell({ children }: AppShellProps) {
             </nav>
           </div>
 
-          {/* Operations Nav */}
-          <div className="space-y-3">
-            <div className="px-3 flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-amber-400/90 uppercase font-mono">
-                Staff zone
-              </span>
-              <span className="px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-300 rounded border border-amber-500/20 font-mono">
-                Internal
-              </span>
+          {/* Staff zone — collapsible dropdown; icon-only shortcut when sidebar is collapsed */}
+          {sidebarCollapsed ? (
+            <div className="pt-2 border-t border-slate-800/60">
+              <Link
+                href="/operator"
+                title="Staff zone"
+                aria-label="Staff zone"
+                className={`relative flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-all ${
+                  isOperatorRoute
+                    ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+                }`}
+              >
+                <ShieldCheck className="w-[18px] h-[18px]" />
+                {pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-[9px] font-bold text-slate-950 flex items-center justify-center">
+                    {pendingCount > 9 ? "9+" : pendingCount}
+                  </span>
+                )}
+              </Link>
             </div>
-            {staffNavGroups.map((group) => (
-              <div key={group.label}>
-                <p className="px-3 mb-1 text-[10px] font-mono uppercase tracking-wider text-slate-500">
-                  {group.label}
-                </p>
-                <nav className="space-y-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const active = pathname === item.href;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                          active
-                            ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 shadow-sm"
-                            : "text-slate-300 hover:text-white hover:bg-slate-800/40"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className={`w-4 h-4 ${active ? "text-amber-400" : "text-slate-400"}`} />
-                          <span>{item.label}</span>
-                        </div>
-                        {item.badge !== undefined && (
-                          <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full border ${item.badgeColor}`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </div>
-            ))}
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <button
+                onClick={() => setStaffOpen(!staffOpen)}
+                aria-expanded={staffOpen}
+                className="w-full px-3 py-2 flex items-center justify-between rounded-lg hover:bg-slate-800/40 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold tracking-wider text-amber-400/90 uppercase font-mono">
+                    Staff zone
+                  </span>
+                  <span className="px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-300 rounded border border-amber-500/20 font-mono">
+                    Internal
+                  </span>
+                </span>
+                <span className="flex items-center gap-2">
+                  {pendingCount > 0 && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {pendingCount}
+                    </span>
+                  )}
+                  {staffOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  )}
+                </span>
+              </button>
+              {staffOpen &&
+                staffNavGroups.map((group) => (
+                  <div key={group.label} className="ml-3 pl-2 border-l border-slate-800/70 space-y-1">
+                    <p className="px-3 mb-1 text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                      {group.label}
+                    </p>
+                    <nav className="space-y-1 pr-1">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const active = pathname === item.href;
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                              active
+                                ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 shadow-sm"
+                                : "text-slate-300 hover:text-white hover:bg-slate-800/40"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Icon className={`w-4 h-4 ${active ? "text-amber-400" : "text-slate-400"}`} />
+                              <span>{item.label}</span>
+                            </div>
+                            {item.badge !== undefined && (
+                              <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full border ${item.badgeColor}`}>
+                                {item.badge}
+                              </span>
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </nav>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-violet-900/20 bg-[#080B14]/80 space-y-3">
-          <div className="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800 text-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-slate-400">Sandbox Rails</span>
-              <span className="text-emerald-400 font-mono text-[10px]">4 / 4 Active</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400">Pollar Testnet</span>
-              <span className="text-violet-400 font-mono text-[10px]">Stellar Online</span>
-            </div>
-          </div>
+        <div className={`border-t border-violet-900/20 bg-[#080B14]/80 ${sidebarCollapsed ? "p-2 flex flex-col items-center gap-2" : "p-4 space-y-3"}`}>
+          {sidebarCollapsed ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" title="Sandbox rails active · Pollar testnet online" />
+              <span className="text-[9px] font-mono text-slate-500" title="v1.2.0">v1.2</span>
+            </>
+          ) : (
+            <>
+              <div className="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800 text-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-slate-400">Sandbox Rails</span>
+                  <span className="text-emerald-400 font-mono text-[10px]">4 / 4 Active</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Pollar Testnet</span>
+                  <span className="text-violet-400 font-mono text-[10px]">Stellar Online</span>
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-            <span>Env: Stellar Testnet</span>
-            <span className="text-violet-400">v1.2.0</span>
-          </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>Env: Stellar Testnet</span>
+                <span className="text-violet-400">v1.2.0</span>
+              </div>
+            </>
+          )}
         </div>
       </aside>
 
@@ -319,7 +418,7 @@ export default function AppShell({ children }: AppShellProps) {
                 href="/operator"
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-medium transition-colors shadow-sm"
               >
-                <span>Operator Cockpit</span>
+                <span>Staff zone</span>
                 <ChevronRight className="w-3 h-3 text-amber-400" />
               </Link>
             )}
@@ -365,8 +464,29 @@ export default function AppShell({ children }: AppShellProps) {
             </div>
 
             <div className="pt-2 border-t border-slate-800 space-y-2">
-              <p className="text-[10px] uppercase font-mono text-amber-400 tracking-wider">Staff — approve payments</p>
-              {staffNavGroups.map((group) => (
+              <button
+                onClick={() => setMobileStaffOpen(!mobileStaffOpen)}
+                aria-expanded={mobileStaffOpen}
+                className="w-full flex items-center justify-between px-1 py-1.5 rounded-lg hover:bg-slate-800/40 transition-colors"
+              >
+                <span className="text-[10px] uppercase font-mono text-amber-400 tracking-wider">
+                  Staff zone — internal
+                </span>
+                <span className="flex items-center gap-2">
+                  {pendingCount > 0 && (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {pendingCount}
+                    </span>
+                  )}
+                  {mobileStaffOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  )}
+                </span>
+              </button>
+              {mobileStaffOpen &&
+                staffNavGroups.map((group) => (
                 <div key={group.label} className="space-y-1">
                   <p className="px-3 text-[10px] font-mono uppercase tracking-wider text-slate-500">{group.label}</p>
                   {group.items.map((item) => (
