@@ -74,7 +74,7 @@ node -e "import('./dist/payments/pollar/pollarService.js').then(m => console.log
 
 **Hosted domains (Vercel, live):**
 
-- Portal: `https://pollar-bridge-chi.vercel.app`
+- Portal: `https://pollar-bridge.vercel.app`
 - Backend: `https://pollar-bridge-api.vercel.app`
 
 Add both to the dashboard's allowed-domains list (Build → Domains) and set

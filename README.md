@@ -10,7 +10,7 @@ Implements the architecture spec in `main (5).pdf`: a universal transfer engine 
 pluggable country configuration, corridor model, provider adapters, capability matrix,
 payment state machine, reconciliation, and a Pollar settlement boundary.
 
-**Status:** live on testnet · **hosted on Vercel** (`pollar-bridge-chi.vercel.app` portal +
+**Status:** live on testnet · **hosted on Vercel** (`pollar-bridge.vercel.app` portal +
 `pollar-bridge-api.vercel.app` backend) · 45/45 backend tests green · 48/48 live-API e2e
 checks green · frontend builds clean. Read [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md)
 for what is real vs sandbox, [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) for the x402 machine rail,
@@ -44,6 +44,7 @@ and the social preview card (`web/src/app/opengraph-image.tsx`) all share the sa
 13. [Roadmap to pilot and live](#13-roadmap-to-pilot-and-live)
 14. [Links](#14-links)
 15. [Judge cheat sheet (2 minutes)](#15-judge-cheat-sheet-2-minutes)
+16. [License](#16-license)
 
 New here? Read in this order: §1 idea → §5 quickstart → §14 links to
 [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md) (real vs sandbox) →
@@ -239,7 +240,7 @@ The app runs as two Vercel projects in the same team:
 
 | Project | URL | What it hosts | Key env vars |
 |---|---|---|---|
-| `pollar-bridge` | https://pollar-bridge-chi.vercel.app | Next.js portal | `BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `OPERATOR_API_KEY`, `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` |
+| `pollar-bridge` | https://pollar-bridge.vercel.app | Next.js portal | `BACKEND_URL`, `NEXT_PUBLIC_API_URL`, `OPERATOR_API_KEY`, `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` |
 | `pollar-bridge-api` | https://pollar-bridge-api.vercel.app | Express backend as one serverless function | `MODE`, `POLLAR_ENV`, `POLLAR_*`, provider keys, `OPERATOR_API_KEY`, `WEBHOOK_SECRET`, `AGENT_SETTLE_WALLET` |
 
 How the deploy works: `api/send.js` is a thin serverless handler that builds the same
@@ -386,6 +387,7 @@ Or run the whole flow automatically: `bash scripts/e2e.sh` (48 checks, fails fas
 ```
 Pollar-Bridge/
 ├── README.md                  # this file
+├── LICENSE                    # MIT license
 ├── SECURITY.md                # security semantics (auth, webhooks, secrets, limits)
 ├── POLLAR_SETUP.md            # Pollar testnet ops manual + judge demo
 ├── docs/
@@ -394,7 +396,7 @@ Pollar-Bridge/
 ├── package.json               # backend deps + scripts
 ├── tsconfig.json  vitest.config.ts
 ├── scripts/e2e.sh             # live-API end-to-end verification (48 checks)
-├── scripts/web-smoke.sh       # portal smoke: pages + proxy paths + 402 rail (27 checks)
+├── scripts/web-smoke.sh       # portal smoke: pages + proxy paths + 402 rail (24 checks)
 ├── src/
 │   ├── index.ts               # server entry (dotenv + listen)
 │   ├── app.ts                 # Express app, CORS, raw-body, headers, logging, errors
@@ -416,6 +418,7 @@ Pollar-Bridge/
 │                              # agent (x402 HTTP), pollar-surfaces (45 tests)
 └── web/                       # Next.js role-based portal (proxies Express backend)
     ├── DESIGN.md                # design system every agent edit must follow
+    ├── vercel.json              # isolates the portal from the root vercel.json
     ├── src/components/ui/       # shared kit (StatusBadge, Stat, Timeline, …)
     ├── src/lib/backend.ts       # backend base URL + operator-key forwarding
     ├── src/lib/adapters.ts      # backend → UI shape translation
@@ -449,8 +452,8 @@ npm run typecheck              # strict TS, backend
 npm test                       # vitest: 45 tests
 bash scripts/e2e.sh            # live backend API: 48 endpoint checks
 cd web && npm run build        # frontend typecheck + production build
-# with both servers running:
-bash scripts/web-smoke.sh      # portal smoke: 13 pages + 11 proxies + 402/201 rail
+# with the backend running on :4000:
+bash scripts/web-smoke.sh      # portal smoke: 13 pages + 10 proxies + 402/201 rail
 ```
 
 Test files:
@@ -558,7 +561,7 @@ compliance are all in place — never because sandbox tests pass.
 | 4 | Open the handoff receipt / `/track/:token` | "Public tracking, no PII; BOB leg explicitly mocked per the rules." |
 | 5 | Open `/agent`, click Quote then Mint | "**No other team has this**: an app/AI agent buys the corridor — 402 bill, pay with memo, 201 transfer, audited as actor `agent`." |
 | 6 | Open `/earn` and `/kyc` | "Same SDK surface for yield (Blend/DeFindex) and identity; live values when keys exist, labeled sandbox otherwise." |
-| 7 | `bash scripts/e2e.sh` + `bash scripts/web-smoke.sh` | "48 backend checks + 27 portal checks green, including the 402→201 rail and the 409 replay guard." |
+| 7 | `bash scripts/e2e.sh` + `bash scripts/web-smoke.sh` | "48 backend checks + 24 portal checks green, including the 402→201 rail and the 409 replay guard." |
 
 
 ## 16. License
