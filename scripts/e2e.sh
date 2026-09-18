@@ -69,4 +69,51 @@ R=$(curl -s "$BASE/transfers/$T2"); need_ok "transfers.history-preserved" "$R"
 # Webhook skeleton
 R=$(curl -s -X POST "$BASE/webhooks/ng-demo-bank" -H 'Content-Type: application/json' -d '{"event":"payment.received"}'); need_ok "webhooks.receive" "$R"
 
+# ---- Pollar surfaces (real when keys are set, labeled sandbox otherwise) ----
+R=$(curl -s "$BASE/pollar/status"); need_ok "pollar.status" "$R"
+echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['mode'] in ('real','mock'), d; assert d['env'] in ('testnet','live'), d" || fail "pollar.status" "bad shape"
+pass "pollar.status-shape"
+R=$(curl -s "$BASE/ramps/quote?country=BO&amount=100&currency=USDC&direction=offramp"); need_ok "ramps.quote" "$R"
+echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d['mode'] in ('real','mock'), d" || fail "ramps.quote" "missing mode label"
+pass "ramps.quote-labeled"
+R=$(curl -s "$BASE/earn/opportunities?provider=blend"); need_ok "earn.opportunities" "$R"
+R=$(curl -s "$BASE/earn/opportunities?provider=defindex"); need_ok "earn.defindex" "$R"
+R=$(curl -s "$BASE/kyc/providers?country=NG"); need_ok "kyc.providers" "$R"
+R=$(curl -s -X POST "$BASE/users/register" -H 'Content-Type: application/json' -d '{"externalId":"e2e-check"}'); need_ok "users.register" "$R"
+
+# ---- x402 machine rail: 402 quote -> paid redeem -> 201 transfer ----
+CODE=$(curl -s -o /tmp/agent_quote.json -w "%{http_code}" -X POST "$BASE/agent/quote" -H 'Content-Type: application/json' -d '{"corridorId":"NG-NGN-BANK-BO-USDC","sourceAmount":100000}')
+[ "$CODE" = "402" ] || fail "agent.quote" "expected HTTP 402, got $CODE"
+pass "agent.quote-402"
+python3 -c "import json;d=json.load(open('/tmp/agent_quote.json'));assert d['code']=='PAYMENT_REQUIRED',d;assert float(d['priceUsdc'])>0,d;assert d['payTo'],d;assert d['memo'].startswith('PB-AGENT-'),d;assert d['expiresAt'],d" || fail "agent.quote" "bad 402 payload"
+pass "agent.quote-payload"
+AMEMO=$(python3 -c "import json;print(json.load(open('/tmp/agent_quote.json'))['memo'])")
+R=$(curl -s "$BASE/agent/status/$AMEMO"); need_ok "agent.status" "$R"
+echo "$R" | python3 -c "import sys,json;d=json.load(sys.stdin);assert d['redeemed'] is False,d" || fail "agent.status" "should start unredeemed"
+pass "agent.status-unredeemed"
+CODE=$(curl -s -o /tmp/agent_t.json -w "%{http_code}" -X POST "$BASE/agent/transfers" -H 'Content-Type: application/json' -d "{\"memo\":\"$AMEMO\",\"paymentHash\":\"$(python3 -c 'print("ab"*32)')\"}")
+[ "$CODE" = "201" ] || fail "agent.transfers" "expected HTTP 201, got $CODE"
+pass "agent.transfers-201"
+ATID=$(python3 -c "import json;d=json.load(open('/tmp/agent_t.json'));print(d['transferId'])")
+python3 -c "import json;d=json.load(open('/tmp/agent_t.json'));assert d['idempotencyKey']=='agent_$AMEMO',d;assert d['payment']['verified']=='format-only-sandbox',d" || fail "agent.transfers" "bad body"
+pass "agent.transfers-idempotent-key"
+# Same memo twice -> 409 (no double-spend of a paid memo)
+CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/agent/transfers" -H 'Content-Type: application/json' -d "{\"memo\":\"$AMEMO\",\"paymentHash\":\"$(python3 -c 'print("ab"*32)')\"}")
+[ "$CODE" = "409" ] || fail "agent.transfers-replay" "expected 409 on memo replay, got $CODE"
+pass "agent.transfers-replay-409"
+# Bad hash shape -> 400
+CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/agent/transfers" -H 'Content-Type: application/json' -d "{\"memo\":\"$AMEMO\",\"paymentHash\":\"not-hex\"}")
+[ "$CODE" = "400" ] || fail "agent.transfers-badhash" "expected 400 for non-hex hash, got $CODE"
+pass "agent.transfers-badhash-400"
+# Agent transfer is a normal transfer: it can be verified + settled like any other
+APID=$(curl -s "$BASE/transfers/$ATID" | python3 -c "import sys,json;print(json.load(sys.stdin)['paymentId'])")
+curl -s -X POST "$BASE/operator/payments/$APID/detected" >/dev/null
+curl -s -X POST "$BASE/operator/payments/$APID/verify" >/dev/null
+R=$(curl -s -X POST "$BASE/transfers/$ATID/settle"); need_ok "agent.settle" "$R"
+echo "$R" | python3 -c "import sys,json;d=json.load(sys.stdin);assert d['status']=='COMPLETED',d" || fail "agent.settle" "agent transfer did not complete"
+pass "agent.settle-completes"
+R=$(curl -s "$BASE/operator/audit?limit=50"); need_ok "audit.after-agent" "$R"
+echo "$R" | python3 -c "import sys,json;d=json.load(sys.stdin);assert any(l['actor']=='agent' and l['action']=='agent.transfer.create' for l in d), 'no agent audit line'" || fail "audit.after-agent" "agent action not audited"
+pass "audit.actor-agent-recorded"
+
 echo "ALL E2E CHECKS PASSED"

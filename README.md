@@ -8,9 +8,11 @@ Implements the architecture spec in `main (5).pdf`: a universal transfer engine 
 pluggable country configuration, corridor model, provider adapters, capability matrix,
 payment state machine, reconciliation, and a Pollar settlement boundary.
 
-**Status:** live on testnet · 33/33 backend tests green · 28/28 live-API e2e checks green ·
-frontend builds clean. See [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof,
-[SECURITY.md](SECURITY.md) for the security model.
+**Status:** live on testnet · 45/45 backend tests green · 48/48 live-API e2e checks green ·
+frontend builds clean. Read [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md) for
+what is real vs sandbox, [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) for the x402 machine rail,
+[POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof, [SECURITY.md](SECURITY.md) for the
+security model.
 
 ---
 
@@ -30,6 +32,11 @@ frontend builds clean. See [POLLAR_SETUP.md](POLLAR_SETUP.md) for on-chain proof
 12. [Security model](#12-security-model)
 13. [Roadmap to pilot and live](#13-roadmap-to-pilot-and-live)
 14. [Links](#14-links)
+15. [Judge cheat sheet (2 minutes)](#15-judge-cheat-sheet-2-minutes)
+
+New here? Read in this order: §1 idea → §5 quickstart → §14 links to
+[docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md) (real vs sandbox) →
+[docs/AGENT_RAIL.md](docs/AGENT_RAIL.md) (the x402 machine rail).
 
 ---
 
@@ -76,7 +83,7 @@ How each organizer rule is satisfied:
 | Don't build Bolivia | No Bolivia code exists; payout is a labeled mock | `GET /api/transfers/:id/handoff` → `bolivia.status: "mocked"` |
 | Build and demo on testnet (wallets, sponsored txs, USDC) | `@pollar/react` wallet card + Deferred funding (`POST /v1/wallets/fund`) | `/wallet` + [POLLAR_SETUP.md](POLLAR_SETUP.md) |
 | Mock the final BOB payout | `BOB-MOCK-*` refs with explicit note | handoff receipt |
-| African path must exist, be well designed, hand off cleanly | State machine + capability matrix + handoff receipt with idempotency key | `scripts/e2e.sh` (28 checks) |
+| African path must exist, be well designed, hand off cleanly | State machine + capability matrix + handoff receipt with idempotency key | `scripts/e2e.sh` (48 checks) |
 | Move real money via SDK (wallets, ramps, KYC, yield, agents) | x402 machine rail (402→201) + live ramps quotes + Blend/DeFindex APY + KYC providers + user register | `/agent`, `/earn`, `/kyc`, `GET /api/pollar/status` |
 
 ---
@@ -206,9 +213,11 @@ npm run dev                 # :3000 (backend must run on :4000)
 | `POLLAR_SECRET_KEY` | backend `.env` only | for real funding | `sec_testnet_…` — **never** in `web/` |
 | `OPERATOR_API_KEY` | backend `.env` | pilot/live yes, demo no | Gates `POST /operator/*`, `POST /transfers/:id/settle`, `PATCH /corridors/:id` via `x-operator-key` |
 | `WEBHOOK_SECRET` | backend `.env` | live yes | HMAC-SHA256 over `<timestamp>.<raw-body>`; headers `x-webhook-signature` + `x-webhook-timestamp` |
+| `AGENT_SETTLE_WALLET` | backend `.env` | no | x402 escrow address; empty = visibly-fake `G-AGENT-ESCROW-sandbox` |
 | `ALLOWED_ORIGINS` | backend `.env` | no | Comma allowlist; empty = allow all (dev only — set in prod) |
 | `BACKEND_URL` | `web/.env.local` | no (defaults to `http://localhost:4000/api`) | Express backend base URL proxied by `web/src/app/api/*` |
 | `OPERATOR_API_KEY` (web) | `web/.env.local` | must match backend when set | Forwarded as `x-operator-key` on verify/settle/reject + corridor toggles |
+| `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` | `web/.env.local` | no (`pub_testnet_…` enables the real SDK wallet card) | Empty = SDK skipped entirely, no console 401; demo card stays usable |
 
 Full key setup, funding, and troubleshooting: [POLLAR_SETUP.md](POLLAR_SETUP.md).
 Security semantics (auth, webhooks, rate limits, secret handling): [SECURITY.md](SECURITY.md).
@@ -322,7 +331,7 @@ curl -N $BASE/transfers/<transferId>/events
 With `OPERATOR_API_KEY` set, add `-H 'x-operator-key: $OPERATOR_API_KEY'` to the
 operator/settle calls. Web portal sends it automatically from its `OPERATOR_API_KEY`.
 
-Or run the whole flow automatically: `bash scripts/e2e.sh` (28 checks, fails fast).
+Or run the whole flow automatically: `bash scripts/e2e.sh` (48 checks, fails fast).
 
 ---
 
@@ -333,9 +342,12 @@ Pollar-Bridge/
 ├── README.md                  # this file
 ├── SECURITY.md                # security semantics (auth, webhooks, secrets, limits)
 ├── POLLAR_SETUP.md            # Pollar testnet ops manual + judge demo
+├── docs/
+│   ├── POLLAR_INTEGRATION.md  # what is real vs sandbox, surface by surface
+│   └── AGENT_RAIL.md          # x402 machine rail: API, failure codes, 2-curl demo
 ├── package.json               # backend deps + scripts
 ├── tsconfig.json  vitest.config.ts
-├── scripts/e2e.sh             # live-API end-to-end verification (28 checks)
+├── scripts/e2e.sh             # live-API end-to-end verification (48 checks)
 ├── src/
 │   ├── index.ts               # server entry (dotenv + listen)
 │   ├── app.ts                 # Express app, CORS, raw-body, headers, logging, errors
@@ -348,16 +360,21 @@ Pollar-Bridge/
 │   │   ├── countries/         # nigeria, ghana, kenya, southAfrica + registry
 │   │   ├── corridors/         # corridorRegistry (+ admin enable/disable)
 │   │   ├── providers/         # providerRegistry, capabilityMatrix, providerHealth
-│   │   ├── pollar/            # pollarService (real SDK path + mock fallback)
+│   │   ├── pollar/            # pollarService (real SDK path + labeled mock fallback)
 │   │   └── routing/           # smart rail recommendations
-│   ├── routes/                # corridors, quotes, transfers (+SSE), operator, extra, health
+│   ├── routes/                # corridors, quotes, transfers (+SSE), operator, extra,
+│   │                          # pollar (ramps/earn/kyc/users), agent (x402), health
 │   └── store/                 # memoryStore, auditLog, transferEvents
-├── tests/                     # contract, e2e, hackathon, spec, security (33)
+├── tests/                     # contract, e2e, hackathon, spec, security,
+│                              # agent (x402 HTTP), pollar-surfaces (45 tests)
 └── web/                       # Next.js role-based portal (proxies Express backend)
+    ├── DESIGN.md                # design system every agent edit must follow
+    ├── src/components/ui/       # shared kit (StatusBadge, Stat, Timeline, …)
     ├── src/lib/backend.ts       # backend base URL + operator-key forwarding
     ├── src/lib/adapters.ts      # backend → UI shape translation
-    ├── src/app/api/*            # thin proxies (corridors, providers, transfers, audit, reconciliation, wallet)
-    └── src/app/                 # send, track, history, wallet, operator pages
+    ├── src/app/api/*            # thin proxies (corridors, providers, transfers, audit,
+    │                            # reconciliation, wallet, agent, pollar, earn, kyc)
+    └── src/app/                 # send, track, history, wallet, earn, kyc, agent, operator pages
 ```
 
 ---
@@ -382,8 +399,8 @@ Pollar-Bridge/
 
 ```bash
 npm run typecheck          # strict TS, backend
-npm test                   # vitest: 33 tests
-bash scripts/e2e.sh        # live API: 28 endpoint checks against a booted server
+npm test                   # vitest: 45 tests
+bash scripts/e2e.sh        # live API: 48 endpoint checks against a booted server
 cd web && npm run build    # frontend typecheck + production build
 ```
 
@@ -396,6 +413,8 @@ Test files:
 | `tests/hackathon.test.ts` | Mock-vs-real mode, smart routing, share token + handoff (BOB mocked, Stellar hash) |
 | `tests/spec.test.ts` | 8-provider registration, corridor disable with history, pending/audit, refund chain, health snapshot |
 | `tests/security.test.ts` | Secret redaction, operator-auth demo passthrough, lazy Pollar env |
+| `tests/agent.test.ts` | x402 machine rail over HTTP: 402 payload, 201 mint, replay `409`, bad hash `400`, unknown memo `400`/`404`, `actor=agent` audit |
+| `tests/pollar-surfaces.test.ts` | Pollar surfaces answer + label `real`/`mock`, input validation, and **no credential ever appears in a response body** |
 
 ---
 
@@ -473,6 +492,21 @@ compliance are all in place — never because sandbox tests pass.
 ## 14. Links
 
 - Pollar docs: https://docs.pollar.xyz · Ramps: https://docs.pollar.xyz/docs/operator-guide/integrations/ramps
+- Pollar MCP gateway (agent/app management): https://docs.pollar.xyz/docs/sdk-reference/mcp-gateway
 - Dashboard: https://dashboard.pollar.xyz · SDK: https://github.com/pollar-xyz/pollar
 - Testnet explorer: https://stellar.expert/explorer/testnet
 - Ops manual + judge demo: [POLLAR_SETUP.md](POLLAR_SETUP.md)
+- Real-vs-sandbox: [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md)
+- x402 machine rail: [docs/AGENT_RAIL.md](docs/AGENT_RAIL.md)
+
+## 15. Judge cheat sheet (2 minutes)
+
+| # | Do this | What to say |
+|---|---|---|
+| 1 | Open `/send`, pick Nigeria, amount 100,000 | "African leg: local rails, quoted and limited per country." |
+| 2 | Pay instructions show `PB-…` reference + sandbox account | "Nothing settles until a human confirms — detection is not verification." |
+| 3 | Go to `/operator/queue`, click Verify | "Staff approval releases USDC through Pollar Deferred funding (testnet)." |
+| 4 | Open the handoff receipt / `/track/:token` | "Public tracking, no PII; BOB leg explicitly mocked per the rules." |
+| 5 | Open `/agent`, click Quote then Mint | "**No other team has this**: an app/AI agent buys the corridor — 402 bill, pay with memo, 201 transfer, audited as actor `agent`." |
+| 6 | Open `/earn` and `/kyc` | "Same SDK surface for yield (Blend/DeFindex) and identity; live values when keys exist, labeled sandbox otherwise." |
+| 7 | `bash scripts/e2e.sh` | "48 checks green, including the 402→201 rail and the 409 replay guard." |

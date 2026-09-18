@@ -61,10 +61,34 @@ cockpit sends it as `x-operator-key`).
 - `Idempotency-Key` header (or `idempotencyKey` body) makes double-clicks/retries safe:
   same key returns the original transfer, never a duplicate.
 
-## 6. What is still demo-grade (do before pilot)
+## 6. Machine rail (x402) — its own trust zone
+
+The agent rail lets software start transfers. It deliberately keeps **every
+existing money-safety rule** and adds two of its own.
+
+| Rule | Where |
+|---|---|
+| Machine transfers are never trusted for money movement | `POST /agent/transfers` only *creates* a transfer; settlement still requires staff verify (same state machine) |
+| `paymentHash` is shape-checked only in sandbox, and says so | response `payment.verified: "format-only-sandbox"`; live must check Horizon |
+| One memo = one transfer (double-spend guard) | in-memory redeem set → `409 memo already redeemed` |
+| Memo quotes expire | 15-minute TTL → `410` |
+| Unknown/malformed input fails closed | `400` (zod: memo ≥ 3 chars, hash exactly 64 hex) |
+| Machine actions are attributable | audit `actor: "agent"`, surfaced in the Activity log filter "Agent (x402 machine)" |
+| Rate limited like any other money-adjacent write | `rateLimit(60)` on `/agent/transfers` |
+
+`payTo` defaults to the visibly-fake `G-AGENT-ESCROW-sandbox`; set
+`AGENT_SETTLE_WALLET` for a real escrow address. No key or secret is ever
+returned by an agent endpoint (`tests/pollar-surfaces.test.ts` asserts this).
+
+---
+
+## 7. What is still demo-grade (do before pilot)
 
 1. In-memory store + audit (restart wipes state) — swap `MemoryStore` for a DB.
 2. Single shared operator key — move to per-operator accounts + roles + key rotation.
 3. No per-day limits enforcement, dispute flow, or health alerting yet.
 4. Rate limiter is per-process memory — put a shared limiter (Redis/gateway) behind
-   multiple instances.
+   multiple instances. The x402 memo store (`src/routes/agent.ts`) is also per-process:
+   multi-instance deployments need a shared store + real Horizon hash verification.
+5. No agent identity/auth yet — any caller can mint a transfer; that is safe because
+   settlement is still staff-gated, but a pilot should issue per-agent credentials.

@@ -91,6 +91,7 @@ export default function AuditLogPage() {
               <option value="ALL">All Actors</option>
               <option value="Sender">Sender</option>
               <option value="Operator">Operator</option>
+              <option value="Agent">Agent (x402 machine)</option>
               <option value="Pollar Engine">Pollar Engine</option>
               <option value="System">System</option>
             </select>
@@ -138,6 +139,8 @@ export default function AuditLogPage() {
                               ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                               : log.actor === "Pollar Engine"
                               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              : log.actor === "Agent"
+                              ? "bg-emerald-500/10 text-emerald-200 border border-emerald-500/40"
                               : "bg-violet-500/20 text-violet-300 border border-violet-500/30"
                           }`}
                         >

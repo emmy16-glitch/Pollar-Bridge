@@ -12,10 +12,11 @@ Backend keys live in gitignored `.env` files (never committed, never in `web/`).
 3. [Server API cookbook](#3-server-api-cookbook)
 4. [On-chain inventory](#4-on-chain-inventory)
 5. [How Deferred funding maps to our flow](#5-how-deferred-funding-maps-to-our-flow)
-6. [Troubleshooting](#6-troubleshooting)
-7. [Costs on testnet](#7-costs-on-testnet)
-8. [Judge demo script (2 minutes)](#8-judge-demo-script-2-minutes)
-9. [Going live checklist (security)](#9-going-live-checklist-security)
+6. [What each Pollar surface needs](#6-what-each-pollar-surface-needs)
+7. [Troubleshooting](#7-troubleshooting)
+8. [Costs on testnet](#8-costs-on-testnet)
+9. [Judge demo script (2 minutes)](#9-judge-demo-script-2-minutes)
+10. [Going live checklist (security)](#10-going-live-checklist-security)
 
 ---
 
@@ -187,7 +188,32 @@ server-side with the secret key; without keys it degrades to labeled mocks so de
 
 ---
 
-## 6. Troubleshooting
+## 6. What each Pollar surface needs
+
+Run `curl -s localhost:4000/api/pollar/status` at any time to see which of these are
+`real` vs `sandbox`. Full detail: [docs/POLLAR_INTEGRATION.md](docs/POLLAR_INTEGRATION.md).
+
+| Surface | Endpoint (ours) | Key needed | Dashboard side |
+|---|---|---|---|
+| Deferred funding | `POST /api/transfers/:id/settle` (fires on `PAYMENT_VERIFIED`) | `POLLAR_SECRET_KEY` | Treasury → account funding topped up |
+| User register | `POST /api/users/register` | `POLLAR_SECRET_KEY` | — |
+| Ramps quote | `GET /api/ramps/quote?country=BO&amount=100&currency=USDC&direction=offramp` | `POLLAR_PUBLISHABLE_KEY` | Integrations → Ramps (Stereum BOB for Bolivia) |
+| Yield | `GET /api/earn/opportunities?provider=blend\|defindex` | publishable | Earn enabled for the app |
+| KYC | `GET /api/kyc/providers?country=NG` | publishable | KYC provider configured |
+| Browser wallet | `/wallet` → `@pollar/react` card | `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` | Build → Domains must include the origin |
+| x402 machine rail | `POST /api/agent/quote` → 402 | none (uses local quotes) | — |
+
+If a surface answers `mode: "mock"` the reason is almost always (a) no key in that
+process's env, or (b) the corridor/provider is not enabled in the Dashboard. The
+response carries a `note` saying which.
+
+> **Do not execute ramps in this demo.** Quoting is read-only and safe;
+> `createOnRamp`/`createOffRamp` would drive real fiat rails the African leg is not
+> authorised to operate.
+
+---
+
+## 7. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -199,18 +225,24 @@ server-side with the secret key; without keys it degrades to labeled mocks so de
 | Wallet can't receive USDC | Missing trustline | Enable USDC in Tokens & Trustlines (§2 step 4) |
 | `SDK_AUTH_TOKEN_EXPIRED` (401) | Stale session | Re-login, re-verify via `/tokens/verify` |
 | Rate-limit (1,000 req/day testnet) | Heavy testing | Wait for UTC reset or request an increase |
-| `operator auth required` (401) on verify/settle | `OPERATOR_API_KEY` set, key not sent | Add `-H "x-operator-key: $OPERATOR_API_KEY"` (curl) or `VITE_OPERATOR_KEY` (web) |
+| `operator auth required` (401) on verify/settle | `OPERATOR_API_KEY` set, key not sent | Add `-H "x-operator-key: $OPERATOR_API_KEY"` (curl) or set `OPERATOR_API_KEY` in `web/.env.local` |
+| `[PollarClient:http] GET /applications/config 401` in browser console | `NEXT_PUBLIC_POLLAR_PUBLISHABLE_KEY` empty/missing | Expected with no key: the provider wrapper **skips the SDK entirely** when the key is empty, so you should not see this. If you do, the key is set but wrong — regenerate it in Build → API Keys |
+| `mode: "mock"` on `/ramps/quote`, `/earn`, `/kyc` | No key in the backend process, or surface not enabled in Dashboard | Set the keys, restart the backend, check `GET /api/pollar/status` |
+| `/agent/quote` returns 200 instead of 402 | You sent an `x-payment-hash` header | Intentional: 402 is the unauthenticated answer. Drop the header to see the bill |
+| `/agent/transfers` 410 | Memo older than 15 minutes | Request a fresh quote |
+| `/agent/transfers` 409 | Memo already redeemed | One memo = one transfer (double-spend guard) |
 | `invalid webhook signature` (401) in live | Wrong secret / clock skew / body rewritten | Check `WEBHOOK_SECRET`, NTP clock, and that no proxy re-serializes JSON |
 
 ---
 
 ## 9. Going live checklist (security)
 
-1. `OPERATOR_API_KEY` + `WEBHOOK_SECRET`: random 32+ chars, stored in the secret manager, never in `web/` (only `VITE_OPERATOR_KEY` mirrors the operator key).
+1. `OPERATOR_API_KEY` + `WEBHOOK_SECRET`: random 32+ chars, stored in the secret manager, never in `web/` (only the web process mirrors the operator key, server-side).
 2. `ALLOWED_ORIGINS=https://<your-domain>` — never leave empty in prod.
 3. `MODE=live` + `POLLAR_ENV=live` with `pub/sec_mainnet_` keys (never mix testnet/mainnet).
 4. Confirm: unsigned live webhook → `401`, operator POST without key → `401`, health/track still public.
-5. See [SECURITY.md](SECURITY.md) for the full model.
+5. x402 rail: the agent route calls the *same* state machine, so staff verification still guards settlement. Set `AGENT_SETTLE_WALLET` explicitly in live and verify `paymentHash` on Horizon (sandbox validates shape only).
+6. See [SECURITY.md](SECURITY.md) for the full model.
 
 ---
 
@@ -227,8 +259,9 @@ Testnet XLM is free (Friendbot) but the mainnet math matters for the pitch:
 
 ## 8. Judge demo script (2 minutes)
 
-1. **Sender (30s):** `web` → pick `NG-NGN-BANK-BO-USDC`, amount 100,000 → payment instructions with reference appear.
-2. **Operator (45s):** pending queue → mark detected → verify. State the rule: *detection is not verification; settlement was blocked until now.*
+1. **Sender (30s):** `web` → `/send` → pick `NG-NGN-BANK-BO-USDC`, amount 100,000 → payment instructions with reference appear.
+2. **Staff (45s):** `/operator/queue` → mark detected → verify. State the rule: *detection is not verification; settlement was blocked until now.*
 3. **Pollar leg (30s):** settle → Stellar tx hash → handoff receipt: African rail proof + Pollar tx + explicitly mocked BOB leg.
 4. **Recipient (15s):** open `/track/:token` — live timeline, no login.
-5. Close: everything testnet, BOB mocked because the real ramp is Pollar mainnet-side.
+5. **Machine rail (30s, the closer):** `/agent` → Quote (HTTP 402 bill with memo) → Mint (201 transfer) → point at the Activity log line `Agent · agent.transfer.create`.
+6. Close: everything testnet, BOB mocked because the real ramp is Pollar mainnet-side; `/earn` + `/kyc` show the same SDK surface with live-vs-sandbox labels.

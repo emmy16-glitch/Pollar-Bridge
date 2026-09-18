@@ -3,6 +3,24 @@ import { backendFetch, type BackendAudit } from "@/lib/backend";
 
 export const dynamic = "force-dynamic";
 
+// Backend audit actors (src/store/auditLog.ts callers):
+//   api        -> public API caller (transfer.create, webhooks, user register)
+//   operator   -> staff action from the review queue / corridor admin
+//   agent      -> x402 machine rail (POST /agent/transfers)
+//   system     -> settlement engine (transfer.settle, payout)
+//   sender     -> user-facing sender action
+const ACTOR_LABEL: Record<string, string> = {
+  api: "Sender",
+  sender: "Sender",
+  operator: "Operator",
+  agent: "Agent",
+  system: "Pollar Engine",
+};
+
+export function labelActor(actor: string): string {
+  return ACTOR_LABEL[(actor ?? "").toLowerCase()] ?? "System";
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -12,7 +30,7 @@ export async function GET(request: Request) {
     const ui = logs.map((a, i) => ({
       id: `audit_${a.at}_${i}`,
       transferId: a.target,
-      actor: a.actor === "operator" ? "Operator" : a.actor === "system" ? "Pollar Engine" : "Sender",
+      actor: labelActor(a.actor),
       action: a.action,
       details: a.detail ?? a.action,
       createdAt: a.at,
