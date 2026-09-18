@@ -86,11 +86,11 @@ export default function OperatorOverviewPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono mb-2">
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              Internal Operations Cockpit
+              Staff only — approve or reject payments here
             </div>
-            <h1 className="text-3xl font-extrabold text-white">Operations Overview</h1>
+            <h1 className="text-3xl font-extrabold text-white">Staff approvals</h1>
             <p className="text-xs text-slate-400">
-              Real-time monitoring of African rails, operator verification queues, and Pollar USDC settlement engine.
+              Payments waiting for a human to confirm. No USDC moves until you approve it here.
             </p>
           </div>
 

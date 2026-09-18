@@ -36,8 +36,8 @@ export default function KycPage() {
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8 space-y-7">
-        <SectionHeading eyebrow="Identity" title="Verify once, fund on approval"
-          description="Deferred mapping: operator verify == funding trigger. Pollar holds the wallet unfunded until KYC passes, then releases it." />
+        <SectionHeading eyebrow="Prove who you are" title="One check, then money can move"
+          description="Pollar holds each new wallet locked until identity passes. In this demo a staff approval counts as the pass — approve a payment in Review queue and the wallet funds automatically." />
         <div className="rounded-2xl bg-[#0F162E] border border-slate-800 p-5 space-y-4">
           <label className="text-xs text-slate-400 block">Country
             <select value={country} onChange={(e) => setCountry(e.target.value)} className="mt-1 w-48 bg-[#080B14] border border-slate-800 rounded-xl px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-violet-500">

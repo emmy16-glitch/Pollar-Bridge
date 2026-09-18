@@ -61,7 +61,7 @@ export default function AgentPage() {
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8 space-y-7">
-        <SectionHeading eyebrow="x402 machine rail" title="Agent rail: quote then mint" description="Machines quote first (402 Payment Required), pay testnet USDC with the memo, then redeem it. Audit actor: agent." />
+        <SectionHeading eyebrow="Let apps pay, not just people" title="Machines can start transfers too" description="Normal flow needs a human clicking. This page lets an app or AI agent do it: ask the price (you get a 402 bill with a payment memo), pay testnet USDC with that memo, then swap the payment proof for a real transfer. Every machine transfer is logged with actor: agent." />
         <Timeline steps={[
           { label: "Step 1 - POST /api/agent/quote", detail: quote ? `HTTP ${qStatus}` : "quote-first, expect 402", state: quote ? "done" : "current" },
           { label: "Step 2 - pay + POST /api/agent/transfers", detail: transfer ? `HTTP ${tStatus}` : "redeem memo with 64-hex", state: transfer ? "done" : quote ? "current" : "pending" },

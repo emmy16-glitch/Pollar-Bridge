@@ -74,11 +74,11 @@ export default function ProviderHealthPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono mb-2">
               <Cpu className="w-3.5 h-3.5" />
-              Adapter Telemetry
+              Are the payment rails up?
             </div>
-            <h1 className="text-3xl font-extrabold text-white">Provider Health & Rails</h1>
+            <h1 className="text-3xl font-extrabold text-white">Rail status</h1>
             <p className="text-xs text-slate-400">
-              Live status, call volumes, error rates, and latency for sandbox and live African liquidity providers.
+              Each African bank / mobile-money connection and whether it is answering. Ping one to test it.
             </p>
           </div>
 
@@ -230,11 +230,12 @@ export default function ProviderHealthPage() {
           </div>
         </div>
 
-        {/* Integration Architecture Card */}
-        <div className="p-6 rounded-3xl bg-[#090D1C] border border-slate-800 space-y-3">
-          <h2 className="text-sm font-semibold text-white">Adapter Security & Gateway Policy</h2>
+        {/* How rails connect */}
+        <div className="p-6 rounded-3xl bg-[#090D1C] border border-slate-800 space-y-2">
+          <h2 className="text-sm font-semibold text-white">How rails connect</h2>
           <p className="text-xs text-slate-400 leading-relaxed">
-            All African banking rails communicate with PollarBridge through sandboxed adapter micro-connectors. In live mode, webhook callbacks are cryptographically signed using HMAC SHA-256 signatures and cross-checked with the NIBSS or GHIPSS switch ledger before triggering the Pollar Stellar testnet minting pipeline.
+            Each rail (bank, mobile money, P2P, agent) is a small adapter. In this demo they are
+            simulated. In live mode each callback is signed and checked before anything settles.
           </p>
         </div>
       </div>

@@ -92,11 +92,12 @@ export default function CorridorsPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
               <Layers className="w-3.5 h-3.5" />
-              Corridor Administration
+              Corridor administration
             </div>
-            <h1 className="text-3xl font-extrabold text-white">Cross-Border Corridors</h1>
+            <h1 className="text-3xl font-extrabold text-white">Routes on / off</h1>
             <p className="text-xs text-slate-400">
-              Control African local currency intake routes, exchange pegs, transaction limits, and settlement status.
+              Each route is one country + one local payment method → Bolivia. Turn routes on or off,
+              set rates and limits. Turning a route off never deletes past transfers.
             </p>
           </div>
 

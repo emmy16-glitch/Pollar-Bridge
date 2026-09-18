@@ -31,8 +31,8 @@ export default function EarnPage() {
   return (
     <AppShell>
       <div className="max-w-5xl mx-auto px-4 lg:px-8 py-8 space-y-7">
-        <SectionHeading eyebrow="Yield" title="Earn with Blend & DeFindex"
-          description="Live APY when Pollar is reachable; otherwise honestly-labeled sandbox figures. Demo — not real yield unless marked live." />
+        <SectionHeading eyebrow="Grow idle USDC" title="Put idle USDC to work"
+          description="Pollar routes idle USDC into audited on-chain vaults (Blend pools, DeFindex vaults) so it earns while it waits for payout. Live interest rate when Pollar is reachable, otherwise clearly-marked demo numbers." />
         <div className="flex items-center gap-2 flex-wrap">
           {(["blend", "defindex"] as const).map((p) => (
             <button key={p} type="button" onClick={() => setProvider(p)}

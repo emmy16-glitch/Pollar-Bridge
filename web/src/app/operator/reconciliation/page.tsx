@@ -69,11 +69,12 @@ export default function ReconciliationPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-mono mb-2">
               <FileCheck2 className="w-3.5 h-3.5" />
-              Dual-Sided Settlement Audit
+              Did the money match?
             </div>
-            <h1 className="text-3xl font-extrabold text-white">Reconciliation Engine</h1>
+            <h1 className="text-3xl font-extrabold text-white">Money check</h1>
             <p className="text-xs text-slate-400">
-              Cross-verifying expected local fiat deposits against confirmed Stellar testnet USDC settlements.
+              For each transfer: what the sender was asked to pay vs what actually arrived vs what
+              settled as USDC. Green = all three match. Amber = waiting on a human.
             </p>
           </div>
 

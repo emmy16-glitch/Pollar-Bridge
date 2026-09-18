@@ -49,11 +49,11 @@ export default function AuditLogPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
               <ShieldCheck className="w-3.5 h-3.5" />
-              Cryptographic Audit Log
+              Who did what, when
             </div>
-            <h1 className="text-3xl font-extrabold text-white">System Audit Trail</h1>
+            <h1 className="text-3xl font-extrabold text-white">Activity log</h1>
             <p className="text-xs text-slate-400">
-              Immutable ledger of all quote requests, payment submissions, operator verifications, and Stellar testnet mints.
+              Every quote, payment, approval, and settlement — one line each. Nothing moves silently.
             </p>
           </div>
 
@@ -99,6 +99,11 @@ export default function AuditLogPage() {
 
         {/* Logs Table */}
         <div className="rounded-3xl bg-[#0F162E] border border-slate-800 p-6 shadow-xl">
+          <p className="text-[11px] text-slate-500 leading-relaxed mb-4">
+            What this is: every important action in the app writes one line here — who did it
+            (sender, operator, agent, Pollar engine, system), what happened, and which transfer
+            it belongs to. Use it to prove to a judge that no money moved without a record.
+          </p>
           {loading ? (
             <div className="py-12 text-center text-slate-400 font-mono text-xs">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-violet-400" />

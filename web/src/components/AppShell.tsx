@@ -78,18 +78,18 @@ export default function AppShell({ children }: AppShellProps) {
   ];
 
   const operatorNavItems = [
-    { label: "Overview", href: "/operator", icon: LayoutDashboard },
+    { label: "Approvals", href: "/operator", icon: LayoutDashboard },
     {
-      label: "Payment queue",
+      label: "Review queue",
       href: "/operator/queue",
       icon: Clock,
       badge: pendingCount > 0 ? pendingCount : undefined,
       badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     },
-    { label: "Corridors", href: "/operator/corridors", icon: Layers },
-    { label: "Providers", href: "/operator/providers", icon: Cpu },
-    { label: "Reconciliation", href: "/operator/reconciliation", icon: FileCheck2 },
-    { label: "Audit log", href: "/operator/audit", icon: FileText },
+    { label: "Routes", href: "/operator/corridors", icon: Layers },
+    { label: "Rails", href: "/operator/providers", icon: Cpu },
+    { label: "Money check", href: "/operator/reconciliation", icon: FileCheck2 },
+    { label: "Activity log", href: "/operator/audit", icon: FileText },
   ];
 
   return (
@@ -342,7 +342,7 @@ export default function AppShell({ children }: AppShellProps) {
             </div>
 
             <div className="pt-2 border-t border-slate-800 space-y-1">
-              <p className="text-[10px] uppercase font-mono text-amber-400 tracking-wider">Operator Cockpit</p>
+              <p className="text-[10px] uppercase font-mono text-amber-400 tracking-wider">Staff — approve payments</p>
               {operatorNavItems.map((item) => (
                 <Link
                   key={item.href}

@@ -74,9 +74,10 @@ How each organizer rule is satisfied:
 | African leg is yours (fund/cash-out via local rails) | 8 sandbox providers across NG/GH/KE/ZA: bank, mobile money, P2P, agent | `GET /api/capabilities` |
 | Sandbox or documented semi-manual flow is fine | Sandbox adapters + operator verify/reject/refund queue | `GET /api/operator/pending` |
 | Don't build Bolivia | No Bolivia code exists; payout is a labeled mock | `GET /api/transfers/:id/handoff` → `bolivia.status: "mocked"` |
-| Build and demo on testnet (wallets, sponsored txs, USDC) | Real `@pollar/react` + `@pollar/core`, `pub/sec_testnet_` keys, Deferred funding | [POLLAR_SETUP.md](POLLAR_SETUP.md) |
+| Build and demo on testnet (wallets, sponsored txs, USDC) | `@pollar/react` wallet card + Deferred funding (`POST /v1/wallets/fund`) | `/wallet` + [POLLAR_SETUP.md](POLLAR_SETUP.md) |
 | Mock the final BOB payout | `BOB-MOCK-*` refs with explicit note | handoff receipt |
 | African path must exist, be well designed, hand off cleanly | State machine + capability matrix + handoff receipt with idempotency key | `scripts/e2e.sh` (28 checks) |
+| Move real money via SDK (wallets, ramps, KYC, yield, agents) | x402 machine rail (402→201) + live ramps quotes + Blend/DeFindex APY + KYC providers + user register | `/agent`, `/earn`, `/kyc`, `GET /api/pollar/status` |
 
 ---
 
@@ -143,18 +144,30 @@ Cross-cutting: smart routing (`payments/routing/`), provider health
 - Smart routing: `GET /api/routes/recommend?country=NG&amount=50000` ranks rails by
   cost/ETA and labels cheapest/fastest.
 
-**Pollar leg (testnet, real)**
-- Frontend uses `@pollar/react` with the publishable key; backend holds the secret key
-  and triggers Deferred wallet funding (`POST /v1/wallets/fund`) on `PAYMENT_VERIFIED`.
+**Pollar leg (testnet: real where it counts, honest where it doesn't)**
+- Wallet: `/wallet` shows a demo card plus a real `@pollar/react` card (login, USDC
+  trustline, send, ramp modal). Without a `pub_testnet_` key the SDK is skipped entirely
+  (no console 401) and the demo card stays usable.
+- Deferred funding: backend holds the secret key and calls `POST /v1/wallets/fund` on
+  `PAYMENT_VERIFIED` (staff approval counts as the pass in this demo).
+- Machine rail (x402-style, our unique piece): `POST /api/agent/quote` answers **HTTP 402**
+  with `{ priceUsdc, payTo, memo, expiresAt }`; the agent pays testnet USDC with that memo,
+  then `POST /api/agent/transfers { memo, paymentHash }` mints a real transfer (audit
+  `actor: agent`). Try it on the `/agent` page — it shows both steps plus the curl.
+- Live-or-sandbox reads (real SDK when keys exist, labeled sandbox otherwise):
+  `GET /api/ramps/quote`, `GET /api/earn/opportunities?provider=blend|defindex`,
+  `GET /api/kyc/providers?country=NG`, `POST /api/users/register`, `GET /api/pollar/status`.
 - Without keys the backend falls back to clearly-labeled Stellar-style mocks
   (64-hex hashes, `G…` addresses) so the demo never breaks offline.
 - Handoff receipt (`GET /api/transfers/:id/handoff`) bundles African rail proof + Pollar
   tx + mocked BOB leg under one idempotency key.
 
-**Operations (the operator leg)**
-- Pending queue, detect/verify/reject/refund endpoints, full audit trail.
-- Corridor administration: enable/disable without deleting history.
-- Provider health: calls, error rate, latency, healthy flag per provider.
+**Operations (the staff leg — plain words)**
+- Review queue: payments waiting for a human to confirm. No USDC moves until staff approve.
+- Money check: asked-to-pay vs actually-arrived vs settled-as-USDC, per transfer. Green = match.
+- Activity log: who did what, when (sender, staff, agent, Pollar engine, system).
+- Routes on/off: enable/disable a country route without deleting history.
+- Rail status: per-provider calls, error rate, latency, healthy flag + ping button.
 - Public recipient tracking: `GET /api/track/:token` exposes status + timeline only —
   no PII, no secrets.
 - Webhook skeleton for live providers (HMAC-enforced in live mode).
@@ -233,16 +246,29 @@ Base URL: `http://localhost:4000/api`. All bodies are JSON.
 
 🔑 = requires `x-operator-key` when `OPERATOR_API_KEY` is set (always set in pilot/live).
 
-**Operator (sandbox semi-manual flow)** — money-moving POSTs are 🔑 + rate-limited.
+**Operator (staff approval flow)** — money-moving POSTs are 🔑 + rate-limited.
 
-| Method | Path | Description |
+| Method | Path | What it means |
 |---|---|---|
-| GET | `/operator/pending?limit=100` | Queue: awaiting, detected, under-review transfers |
-| POST | `/operator/payments/:paymentId/detected` 🔑 | Record possible match (NOT verification); idempotent on re-click |
-| POST | `/operator/payments/:paymentId/verify` 🔑 | Verify → `PAYMENT_VERIFIED` (unlocks settlement) |
-| POST | `/operator/payments/:paymentId/reject` 🔑 | `{ reason }` → `PAYMENT_REJECTED` |
-| POST | `/operator/payments/:paymentId/refund` 🔑 | `{ reason? }` → `REFUND_PENDING` → `REFUNDED` (manual fallback when adapter can't auto-refund) |
-| GET | `/operator/audit?limit=100` | Who did what, when (verifies, rejects, refunds, admin) |
+| GET | `/operator/pending?limit=100` | Payments waiting for a human: awaiting, detected, under-review |
+| POST | `/operator/payments/:paymentId/detected` 🔑 | "I see a possible match" (NOT approval); safe to re-click |
+| POST | `/operator/payments/:paymentId/verify` 🔑 | "Confirmed — release the USDC" (unlocks settlement) |
+| POST | `/operator/payments/:paymentId/reject` 🔑 | `{ reason }` → payment rejected, sender told why |
+| POST | `/operator/payments/:paymentId/refund` 🔑 | `{ reason? }` → money sent back (`REFUND_PENDING` → `REFUNDED`) |
+| GET | `/operator/audit?limit=100` | Activity log: who did what, when |
+
+**Pollar + machine rail (new)**
+
+| Method | Path | What it means |
+|---|---|---|
+| POST | `/agent/quote` | Ask the price as a machine → **HTTP 402** `{ priceUsdc, payTo, memo, expiresAt }` |
+| POST | `/agent/transfers` | Swap `{ memo, paymentHash (64-hex) }` for a real transfer (201, audit `actor: agent`) |
+| GET | `/agent/status/:memo` | Was this memo redeemed / expired? |
+| GET | `/ramps/quote?country=BO&amount=100&currency=USDC&direction=offramp` | Live Pollar quote when keys exist, labeled sandbox otherwise |
+| GET | `/earn/opportunities?provider=blend\|defindex` | Live Blend/DeFindex APY when reachable, demo figures otherwise |
+| GET | `/kyc/providers?country=NG` | Live KYC providers when reachable, sandbox fallback otherwise |
+| POST | `/users/register` | `{ externalId, email? }` → Pollar user (real or `mock_` labeled) |
+| GET | `/pollar/status` | One glance: real vs sandbox for every Pollar surface |
 
 **Administration & extras**
 
