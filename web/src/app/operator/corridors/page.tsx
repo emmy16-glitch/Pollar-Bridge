@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import {
   Layers,
   CheckCircle2,
@@ -87,28 +88,20 @@ export default function CorridorsPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
-              <Layers className="w-3.5 h-3.5" />
-              Corridor administration
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">Routes on / off</h1>
-            <p className="text-xs text-slate-400">
-              Each route is one country + one local payment method → Bolivia. Turn routes on or off,
-              set rates and limits. Turning a route off never deletes past transfers.
-            </p>
-          </div>
-
-          <button
-            onClick={fetchCorridors}
-            className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh Corridors</span>
-          </button>
-        </div>
+        <OperatorPageHeader
+          eyebrow="Staff zone · configuration"
+          title="Routes on / off"
+          description="Each route is one country + one local payment method → Bolivia. Turn routes on or off, set rates and limits. Turning a route off never deletes past transfers."
+          actions={
+            <button
+              onClick={fetchCorridors}
+              className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Corridors</span>
+            </button>
+          }
+        />
 
         {/* Corridors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

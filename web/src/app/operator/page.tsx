@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { formatCurrency, truncateHash, formatRelativeTime } from "@/lib/formatters";
 import Stat from "@/components/ui/Stat";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
+import Callout from "@/components/ui/Callout";
 
 export default function OperatorOverviewPage() {
   const [loading, setLoading] = useState(true);
@@ -81,54 +83,34 @@ export default function OperatorOverviewPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-8">
-        {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono mb-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              Staff only — approve or reject payments here
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">Staff approvals</h1>
-            <p className="text-xs text-slate-400">
-              Payments waiting for a human to confirm. No USDC moves until you approve it here.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchOverview}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh cockpit</span>
-            </button>
-            <Link
-              href="/operator/queue"
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-lg shadow-amber-950/50"
-            >
-              <span>Open Payment Queue</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Safety Rule Banner */}
-        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 flex items-start sm:items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-              <Lock className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-bold text-amber-300 block text-sm">Escrow Integrity Rule:</span>
-              <span className="text-slate-300">
-                USDC cannot be released until the local payment is verified by an operator or banking webhook.
-              </span>
-            </div>
-          </div>
-          <span className="hidden md:inline-block px-2.5 py-1 rounded bg-amber-500/20 text-amber-200 font-mono text-[11px] shrink-0">
-            Escrow Guard Active
-          </span>
-        </div>
+        <OperatorPageHeader
+          eyebrow="Staff zone · needs you now"
+          title="Staff approvals"
+          description="Payments waiting for a human to confirm. No USDC moves until you approve it here."
+          actions={
+            <>
+              <button
+                onClick={fetchOverview}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh cockpit</span>
+              </button>
+              <Link
+                href="/operator/queue"
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-lg shadow-amber-950/50"
+              >
+                <span>Open Payment Queue</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          }
+        >
+          <Callout tone="warn" title="Escrow integrity rule — guard active">
+            USDC cannot be released until the local payment is verified by an operator or banking
+            webhook.
+          </Callout>
+        </OperatorPageHeader>
 
         {/* Section 5 Metrics Grid — Stat cards with live sparklines */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

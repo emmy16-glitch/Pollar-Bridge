@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import {
   FileCheck2,
   CheckCircle2,
@@ -64,48 +65,40 @@ export default function ReconciliationPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-indigo-300 text-xs font-mono mb-2">
-              <FileCheck2 className="w-3.5 h-3.5" />
-              Did the money match?
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">Money check</h1>
-            <p className="text-xs text-slate-400">
-              For each transfer: what the sender was asked to pay vs what actually arrived vs what
-              settled as USDC. Green = all three match. Amber = waiting on a human.
-            </p>
-          </div>
+        <OperatorPageHeader
+          eyebrow="Staff zone · money truth"
+          title="Money check"
+          description="For each transfer: what the sender was asked to pay vs what actually arrived vs what settled as USDC. Green = all three match. Amber = waiting on a human."
+          actions={
+            <>
+              <button
+                onClick={handleRunAutoReconcile}
+                disabled={reconciling}
+                className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs flex items-center gap-2 transition-all shadow-lg shadow-violet-900/50 disabled:opacity-50"
+              >
+                {reconciling ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Scanning records...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Run Auto-Reconciliation</span>
+                  </>
+                )}
+              </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRunAutoReconcile}
-              disabled={reconciling}
-              className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs flex items-center gap-2 transition-all shadow-lg shadow-violet-900/50 disabled:opacity-50"
-            >
-              {reconciling ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Scanning records...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Run Auto-Reconciliation</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={fetchReconciliation}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"
-              title="Refresh"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+              <button
+                onClick={fetchReconciliation}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"
+                title="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </>
+          }
+        />
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

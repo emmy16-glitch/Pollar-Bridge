@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import { Layers, Search, RefreshCw, ExternalLink, Filter } from "lucide-react";
 import { formatCurrency, truncateHash, formatDate } from "@/lib/formatters";
 
@@ -46,25 +47,20 @@ export default function OperatorTransfersPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono mb-2">
-              Operator Log
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">All Transfers</h1>
-            <p className="text-xs text-slate-400">
-              Master ledger of all cross-border African local to Bolivian Pollar transfers.
-            </p>
-          </div>
-
-          <button
-            onClick={fetchTransfers}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh</span>
-          </button>
-        </div>
+        <OperatorPageHeader
+          eyebrow="Staff zone · money truth"
+          title="All Transfers"
+          description="Master ledger of all cross-border African local to Bolivian Pollar transfers."
+          actions={
+            <button
+              onClick={fetchTransfers}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh</span>
+            </button>
+          }
+        />
 
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#0F162E] border border-slate-800">

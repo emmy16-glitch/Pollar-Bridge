@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import { FileText, RefreshCw, Filter, Search, ShieldCheck } from "lucide-react";
 import { formatDate } from "@/lib/formatters";
 
@@ -44,27 +45,20 @@ export default function AuditLogPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Who did what, when
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">Activity log</h1>
-            <p className="text-xs text-slate-400">
-              Every quote, payment, approval, and settlement — one line each. Nothing moves silently.
-            </p>
-          </div>
-
-          <button
-            onClick={fetchLogs}
-            className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh Audit Trail</span>
-          </button>
-        </div>
+        <OperatorPageHeader
+          eyebrow="Staff zone · money truth"
+          title="Activity log"
+          description="Every quote, payment, approval, and settlement — one line each. Nothing moves silently."
+          actions={
+            <button
+              onClick={fetchLogs}
+              className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Audit Trail</span>
+            </button>
+          }
+        />
 
         {/* Filter bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-[#0F162E] border border-violet-900/30">

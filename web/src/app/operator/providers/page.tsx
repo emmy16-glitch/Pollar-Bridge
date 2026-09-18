@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import {
   Cpu,
   RefreshCw,
@@ -69,27 +70,20 @@ export default function ProviderHealthPage() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono mb-2">
-              <Cpu className="w-3.5 h-3.5" />
-              Are the payment rails up?
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">Rail status</h1>
-            <p className="text-xs text-slate-400">
-              Each African bank / mobile-money connection and whether it is answering. Ping one to test it.
-            </p>
-          </div>
-
-          <button
-            onClick={fetchProviders}
-            className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh Health</span>
-          </button>
-        </div>
+        <OperatorPageHeader
+          eyebrow="Staff zone · configuration"
+          title="Rail status"
+          description="Each African bank / mobile-money connection and whether it is answering. Ping one to test it."
+          actions={
+            <button
+              onClick={fetchProviders}
+              className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Refresh Health</span>
+            </button>
+          }
+        />
 
         {/* Live Provider Health Table */}
         <div className="rounded-3xl bg-[#0F162E] border border-slate-800 p-6 shadow-xl">

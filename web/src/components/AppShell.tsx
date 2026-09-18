@@ -77,19 +77,40 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "Agent rail", href: "/agent", icon: Zap },
   ];
 
-  const operatorNavItems = [
-    { label: "Approvals", href: "/operator", icon: LayoutDashboard },
-    {
-      label: "Review queue",
-      href: "/operator/queue",
-      icon: Clock,
-      badge: pendingCount > 0 ? pendingCount : undefined,
-      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+// Staff zone, grouped by what the person is trying to do — not by backend
+  // module. Order matters: "needs you now" first, reference material last.
+  const staffNavGroups: {
+    label: string;
+    items: { label: string; href: string; icon: typeof Clock; badge?: number; badgeColor?: string }[];
+  }[] = [
+  {
+    label: "Needs you now",
+    items: [
+      { label: "Overview", href: "/operator", icon: LayoutDashboard },
+      {
+        label: "Review queue",
+        href: "/operator/queue",
+        icon: Clock,
+        badge: pendingCount > 0 ? pendingCount : undefined,
+        badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+      },
+    ],
+  },
+  {
+    label: "Money truth",
+    items: [
+      { label: "Money check", href: "/operator/reconciliation", icon: FileCheck2 },
+      { label: "All transfers", href: "/operator/transfers", icon: History },
+      { label: "Activity log", href: "/operator/audit", icon: FileText },
+    ],
+  },
+  {
+    label: "Configuration",
+      items: [
+        { label: "Routes", href: "/operator/corridors", icon: Layers },
+        { label: "Rails", href: "/operator/providers", icon: Cpu },
+      ],
     },
-    { label: "Routes", href: "/operator/corridors", icon: Layers },
-    { label: "Rails", href: "/operator/providers", icon: Cpu },
-    { label: "Money check", href: "/operator/reconciliation", icon: FileCheck2 },
-    { label: "Activity log", href: "/operator/audit", icon: FileText },
   ];
 
   return (
@@ -162,42 +183,49 @@ export default function AppShell({ children }: AppShellProps) {
           </div>
 
           {/* Operations Nav */}
-          <div>
-            <div className="px-3 mb-2 flex items-center justify-between">
+          <div className="space-y-3">
+            <div className="px-3 flex items-center justify-between">
               <span className="text-[11px] font-semibold tracking-wider text-amber-400/90 uppercase font-mono">
-                Operator Cockpit
+                Staff zone
               </span>
               <span className="px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-300 rounded border border-amber-500/20 font-mono">
                 Internal
               </span>
             </div>
-            <nav className="space-y-1">
-              {operatorNavItems.map((item) => {
-                const Icon = item.icon;
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      active
-                        ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 shadow-sm"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${active ? "text-amber-400" : "text-slate-400"}`} />
-                      <span>{item.label}</span>
-                    </div>
-                    {item.badge !== undefined && (
-                      <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full border ${item.badgeColor}`}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
+            {staffNavGroups.map((group) => (
+              <div key={group.label}>
+                <p className="px-3 mb-1 text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                  {group.label}
+                </p>
+                <nav className="space-y-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          active
+                            ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 shadow-sm"
+                            : "text-slate-300 hover:text-white hover:bg-slate-800/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className={`w-4 h-4 ${active ? "text-amber-400" : "text-slate-400"}`} />
+                          <span>{item.label}</span>
+                        </div>
+                        {item.badge !== undefined && (
+                          <span className={`text-[11px] font-mono px-2 py-0.5 rounded-full border ${item.badgeColor}`}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -341,27 +369,32 @@ export default function AppShell({ children }: AppShellProps) {
               ))}
             </div>
 
-            <div className="pt-2 border-t border-slate-800 space-y-1">
+            <div className="pt-2 border-t border-slate-800 space-y-2">
               <p className="text-[10px] uppercase font-mono text-amber-400 tracking-wider">Staff — approve payments</p>
-              {operatorNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
-                    pathname === item.href ? "bg-amber-500/20 text-amber-200" : "text-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
+              {staffNavGroups.map((group) => (
+                <div key={group.label} className="space-y-1">
+                  <p className="px-3 text-[10px] font-mono uppercase tracking-wider text-slate-500">{group.label}</p>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                        pathname === item.href ? "bg-amber-500/20 text-amber-200" : "text-slate-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
               ))}
             </div>
           </div>

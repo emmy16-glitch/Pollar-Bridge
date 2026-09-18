@@ -24,6 +24,8 @@ import {
 import { formatCurrency, truncateHash, formatRelativeTime, formatDate } from "@/lib/formatters";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Timeline, { TimelineStep } from "@/components/ui/Timeline";
+import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
+import Callout from "@/components/ui/Callout";
 
 import { Suspense } from "react";
 
@@ -149,20 +151,11 @@ function OperatorQueueContent() {
   return (
     <AppShell>
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono mb-2">
-              <Clock className="w-3.5 h-3.5" />
-              Operator Payment Verification
-            </div>
-            <h1 className="text-3xl font-extrabold text-white">Payment Queue</h1>
-            <p className="text-xs text-slate-400">
-              Verify detected fiat deposits from African local rails before authorizing USDC release.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <OperatorPageHeader
+          eyebrow="Staff zone · needs you now"
+          title="Payment Queue"
+          description="Verify detected fiat deposits from African local rails before authorizing USDC release."
+          actions={
             <button
               onClick={fetchTransfers}
               className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5 transition-colors"
@@ -170,17 +163,13 @@ function OperatorQueueContent() {
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Refresh Queue</span>
             </button>
-          </div>
-        </div>
-
-        {/* Safety Rule Banner */}
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 to-slate-900 border border-amber-500/30 flex items-start gap-3 text-xs text-slate-300">
-          <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold text-amber-300 block">Crucial Escrow Safety Rule:</span>
-            USDC cannot be released until the local payment is verified. Authorizing release mints/settles testnet USDC to the recipient wallet.
-          </div>
-        </div>
+          }
+        >
+          <Callout tone="warn" title="Crucial escrow safety rule">
+            USDC cannot be released until the local payment is verified. Authorizing release
+            mints/settles testnet USDC to the recipient wallet.
+          </Callout>
+        </OperatorPageHeader>
 
         {/* Filters */}
         <div className="flex items-center gap-2 text-xs font-mono">
