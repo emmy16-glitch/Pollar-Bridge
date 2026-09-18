@@ -2,6 +2,7 @@
   "name": "pollar-bridge-backend",
   "version": "0.1.0",
   "description": "PollarBridge Africa — web-only configurable payment-rail backend (sandbox -> pilot -> live)",
+  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

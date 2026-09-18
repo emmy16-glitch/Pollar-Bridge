@@ -559,3 +559,8 @@ compliance are all in place — never because sandbox tests pass.
 | 5 | Open `/agent`, click Quote then Mint | "**No other team has this**: an app/AI agent buys the corridor — 402 bill, pay with memo, 201 transfer, audited as actor `agent`." |
 | 6 | Open `/earn` and `/kyc` | "Same SDK surface for yield (Blend/DeFindex) and identity; live values when keys exist, labeled sandbox otherwise." |
 | 7 | `bash scripts/e2e.sh` + `bash scripts/web-smoke.sh` | "48 backend checks + 27 portal checks green, including the 402→201 rail and the 409 replay guard." |
+
+
+## 16. License
+
+Released under the [MIT License](./LICENSE) — Copyright (c) 2026 Emmanuel Okunlola.
