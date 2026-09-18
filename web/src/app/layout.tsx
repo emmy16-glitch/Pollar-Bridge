@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "PollarBridge Africa — African Local Rails to Pollar USDC & Bolivian Payout",
-  description: "Send money from African local payment rails into Pollar-powered USDC transfers and Bolivian payout.",
+  description: "Send money from Africa to Bolivia. Pay locally, we verify and settle USDC, they receive BOB.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

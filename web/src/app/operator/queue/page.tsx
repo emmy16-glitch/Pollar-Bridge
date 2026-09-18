@@ -22,6 +22,8 @@ import {
   Users,
 } from "lucide-react";
 import { formatCurrency, truncateHash, formatRelativeTime, formatDate } from "@/lib/formatters";
+import StatusBadge from "@/components/ui/StatusBadge";
+import Timeline, { TimelineStep } from "@/components/ui/Timeline";
 
 import { Suspense } from "react";
 
@@ -253,17 +255,10 @@ function OperatorQueueContent() {
                         {formatCurrency(t.totalSourceAmount, t.sourceCurrency)}
                       </td>
                       <td className="py-3">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-semibold ${
-                            t.status === "COMPLETED"
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : t.status === "REJECTED"
-                              ? "bg-coral-500/20 text-rose-300 border border-rose-500/30"
-                              : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          }`}
-                        >
-                          {t.status === "PAYMENT_DETECTED" ? "Payment detected" : t.status}
-                        </span>
+                        <StatusBadge
+                          status={t.status}
+                          label={t.status === "PAYMENT_DETECTED" ? "Payment detected" : undefined}
+                        />
                       </td>
                       <td className="py-3 text-slate-400">
                         {formatRelativeTime(t.paidAt || t.createdAt)}
@@ -366,8 +361,39 @@ function OperatorQueueContent() {
                 </div>
               </div>
 
-              {/* Operator note input */}
-              <div>
+              {/* Verification progress — where this payment sits in the escrow flow */}
+              <div className="p-5 rounded-2xl bg-[#090D1C] border border-slate-800">
+                <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500 mb-3">
+                  Escrow progress
+                </p>
+                {(() => {
+                  const s = selectedTransfer.status as string;
+                  const detected = ["PAYMENT_DETECTED", "IN_REVIEW", "COMPLETED"].includes(s);
+                  const reviewed = ["IN_REVIEW", "COMPLETED"].includes(s);
+                  const settled = s === "COMPLETED";
+                  const failed = s === "REJECTED";
+                  const steps: TimelineStep[] = [
+                    {
+                      label: "Local payment detected",
+                      detail: formatRelativeTime(selectedTransfer.paidAt || selectedTransfer.createdAt),
+                      state: detected ? "done" : "current",
+                    },
+                    {
+                      label: "Operator verification",
+                      detail: settled || reviewed ? "Evidence attached" : failed ? "Rejected" : "Awaiting decision",
+                      state: settled || reviewed ? "done" : failed ? "pending" : detected ? "current" : "pending",
+                    },
+                    {
+                      label: "USDC released via Pollar",
+                      detail: settled ? `${selectedTransfer.usdcAmount} USDC` : failed ? "Blocked" : "Locked until verified",
+                      state: settled ? "done" : "pending",
+                    },
+                  ];
+                  return <Timeline steps={steps} ariaLabel={`Escrow progress for ${selectedTransfer.id}`} />;
+                })()}
+              </div>
+
+              {/* Operator note input */}              <div>
                 <label className="text-xs text-slate-400 block mb-1">
                   Operator Audit Notes
                 </label>

@@ -23,8 +23,11 @@ import {
   FileCheck,
   RefreshCw,
   Sparkles,
+  X,
 } from "lucide-react";
 import { formatCurrency, truncateHash } from "@/lib/formatters";
+import Timeline from "@/components/ui/Timeline";
+import { transferSteps } from "@/components/ui/transferSteps";
 
 type Step = "ROUTE" | "RAILS" | "PAYMENT" | "STATUS" | "RECEIPT";
 
@@ -336,7 +339,7 @@ function SendPageContent() {
         {/* Step Progress Tracker Bar */}
         <div className="p-4 rounded-2xl bg-[#0F162E] border border-violet-900/30">
           <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider mb-3">
-            <span className="text-violet-400">Sender Journey</span>
+            <span className="text-violet-400">Your transfer</span>
             <span className="text-slate-400">
               Step{" "}
               {currentStep === "ROUTE"
@@ -355,10 +358,10 @@ function SendPageContent() {
           <div className="grid grid-cols-5 gap-2">
             {[
               { id: "ROUTE", label: "Route" },
-              { id: "RAILS", label: "Rails & Quote" },
+              { id: "RAILS", label: "Pay with" },
               { id: "PAYMENT", label: "Pay" },
               { id: "STATUS", label: "Status" },
-              { id: "RECEIPT", label: "Receipt" },
+              { id: "RECEIPT", label: "Done" },
             ].map((step, idx) => {
               const stepOrder = ["ROUTE", "RAILS", "PAYMENT", "STATUS", "RECEIPT"];
               const currentIdx = stepOrder.indexOf(currentStep);
@@ -398,11 +401,11 @@ function SendPageContent() {
           <div className="rounded-3xl bg-[#0F162E] border border-violet-900/40 p-6 sm:p-8 space-y-6 shadow-2xl">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
-                Step 1: Choose corridor route
+                Step 1 · Route
               </div>
               <h2 className="text-2xl font-bold text-white">Where are you sending from?</h2>
               <p className="text-xs text-slate-400">
-                PollarBridge bridges African local liquidity rails directly to Pollar Bolivian settlement.
+                Pick where the money leaves from — Bolivia is always the destination.
               </p>
             </div>
 
@@ -413,7 +416,7 @@ function SendPageContent() {
                   htmlFor="origin-country"
                   className="text-xs font-medium text-slate-300 block mb-1.5"
                 >
-                  Where are you sending from?
+                  From country
                 </label>
                 <select
                   id="origin-country"
@@ -432,7 +435,7 @@ function SendPageContent() {
               {/* Destination Country (Challenge Destination: Bolivia) */}
               <div>
                 <label className="text-xs font-medium text-slate-300 block mb-1.5">
-                  Where is the recipient receiving?
+                  To
                 </label>
                 <div className="p-3.5 rounded-xl bg-[#090D1C] border border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -440,12 +443,12 @@ function SendPageContent() {
                     <div>
                       <div className="font-semibold text-sm text-white">Bolivia</div>
                       <div className="text-xs text-slate-400">
-                        Payout currency: <span className="font-mono text-emerald-400">BOB</span> via Pollar USDC
+                        Receives <span className="font-mono text-emerald-400">BOB</span>
                       </div>
                     </div>
                   </div>
                   <span className="text-[11px] font-mono px-2.5 py-1 rounded bg-violet-950/80 border border-violet-500/30 text-violet-300">
-                    Challenge Destination
+                    Destination
                   </span>
                 </div>
               </div>
@@ -476,10 +479,10 @@ function SendPageContent() {
 
               {/* Recipient Details */}
               <div className="pt-2 border-t border-slate-800/80 space-y-3">
-                <div className="text-xs font-semibold text-slate-300">Recipient Information</div>
+                <div className="text-xs font-semibold text-slate-300">Recipient</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Recipient Name</label>
+                    <label className="text-[11px] text-slate-400 block mb-1">Name</label>
                     <input
                       type="text"
                       value={recipientName}
@@ -488,7 +491,7 @@ function SendPageContent() {
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-slate-400 block mb-1">Stellar / Pollar Wallet Address</label>
+                    <label className="text-[11px] text-slate-400 block mb-1">Wallet address</label>
                     <input
                       type="text"
                       value={recipientWallet}
@@ -512,7 +515,7 @@ function SendPageContent() {
                 }}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-900/40"
               >
-                <span>Continue to Rails & Quote</span>
+                <span>See payment options</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -525,11 +528,11 @@ function SendPageContent() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
-                  Step 2: Pick a rail & review quote
+                  Step 2 · Payment method
                 </div>
-                <h2 className="text-2xl font-bold text-white">Compare local payment rails</h2>
+                <h2 className="text-2xl font-bold text-white">How do you want to pay?</h2>
                 <p className="text-xs text-slate-400">
-                  Select how you want to pay {formatCurrency(numAmount, sourceCurrency)} locally.
+                  Choose how to pay {formatCurrency(numAmount, sourceCurrency)}.
                 </p>
               </div>
               <button
@@ -599,25 +602,25 @@ function SendPageContent() {
 
                       <div className="p-3 rounded-xl bg-[#0D1224] border border-slate-800/80 space-y-1 text-xs">
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Estimated delivery:</span>
+                          <span className="text-slate-400">Arrives:</span>
                           <span className="font-mono text-emerald-400 font-medium">
                             {rail.estimatedDelivery}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Provider Fee:</span>
+                          <span className="text-slate-400">Fee:</span>
                           <span className="font-mono text-white">
                             {formatCurrency(calculatedFee, sourceCurrency)}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Verification method:</span>
+                          <span className="text-slate-400">Checked by:</span>
                           <span className="font-mono text-slate-300 text-[11px]">
                             {rail.verificationMethod}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Exchange-rate source:</span>
+                          <span className="text-slate-400">Rate:</span>
                           <span className="font-mono text-slate-400 text-[11px]">
                             Simulated sandbox rate
                           </span>
@@ -652,11 +655,11 @@ function SendPageContent() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-2">
-                  Quote & guaranteed rate
+                  Your quote
                 </div>
-                <h2 className="text-2xl font-bold text-white">Review quote breakdown</h2>
+                <h2 className="text-2xl font-bold text-white">Check the numbers</h2>
                 <p className="text-xs text-slate-400">
-                  Confirm your fees and expected recipient payout before issuing payment instructions.
+                  Confirm the fees and what they receive before continuing.
                 </p>
               </div>
 
@@ -674,36 +677,36 @@ function SendPageContent() {
                 <span className="text-white font-bold">{formatCurrency(numAmount, sourceCurrency)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">Provider fee ({selectedRail.name})</span>
+                <span className="text-slate-400 font-sans">Fee ({selectedRail.name})</span>
                 <span className="text-slate-300">{formatCurrency(providerFee, sourceCurrency)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-800/80">
-                <span className="text-slate-400 font-sans">PollarBridge fee</span>
+                <span className="text-slate-400 font-sans">Our fee</span>
                 <span className="text-slate-300">{formatCurrency(pollarBridgeFee, sourceCurrency)}</span>
               </div>
               <div className="flex justify-between py-2 text-sm border-b border-violet-900/40">
-                <span className="text-violet-300 font-sans font-bold">Total local payable</span>
+                <span className="text-violet-300 font-sans font-bold">You pay</span>
                 <span className="text-violet-200 font-bold">{formatCurrency(totalPayable, sourceCurrency)}</span>
               </div>
 
               <div className="pt-2 flex justify-between py-1">
-                <span className="text-slate-400 font-sans">Recipient receives</span>
+                <span className="text-slate-400 font-sans">They receive</span>
                 <span className="text-emerald-400 font-bold text-sm">{estUsdc} USDC</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-400 font-sans">Estimated BOB payout</span>
+                <span className="text-slate-400 font-sans">BOB payout (est.)</span>
                 <span className="text-white font-bold">{estBob} BOB</span>
               </div>
               <div className="flex justify-between py-1 text-[11px] text-slate-500">
-                <span className="font-sans">Rate source</span>
-                <span>Simulated sandbox rate (1 USDC = {currentRate} {sourceCurrency})</span>
+                <span className="font-sans">Rate</span>
+                <span>Sandbox rate (1 USDC = {currentRate} {sourceCurrency})</span>
               </div>
             </div>
 
             {/* Recipient summary banner */}
             <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs flex items-center justify-between">
               <div>
-                <span className="text-slate-400">Delivering to: </span>
+                <span className="text-slate-400">To: </span>
                 <span className="font-medium text-white">{recipientName}</span>
                 <span className="text-slate-500 font-mono block text-[11px]">
                   Wallet: {truncateHash(recipientWallet, 8, 8)}
@@ -729,7 +732,7 @@ function SendPageContent() {
                   </>
                 ) : (
                   <>
-                    <span>Confirm and get payment instructions</span>
+                    <span>Get payment instructions</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -745,11 +748,11 @@ function SendPageContent() {
           <div className="rounded-3xl bg-[#0F162E] border border-violet-900/40 p-6 sm:p-8 space-y-6 shadow-2xl">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono mb-2">
-                Step 3: Make your local payment
+                Step 3 · Pay
               </div>
-              <h2 className="text-2xl font-bold text-white">Local payment instructions</h2>
+              <h2 className="text-2xl font-bold text-white">Pay exactly this</h2>
               <p className="text-xs text-slate-400">
-                Transfer the exact amount using your assigned unique payment reference.
+                Send the exact amount and include your reference so we can match it.
               </p>
             </div>
 
@@ -757,8 +760,8 @@ function SendPageContent() {
             <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-xs text-amber-200">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold block">Sandbox Mode:</span>
-                Payment confirmation is handled by an operator. USDC cannot be released until local payment is verified.
+                <span className="font-semibold block">Demo note:</span>
+                An operator confirms your payment. Nothing is released until then.
               </div>
             </div>
 
@@ -772,18 +775,18 @@ function SendPageContent() {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-slate-800">
-                <span className="text-xs text-slate-400 font-sans">Bank / Institution:</span>
+                <span className="text-xs text-slate-400 font-sans">Bank:</span>
                 <span className="text-sm font-semibold text-white">{selectedRail.bankName}</span>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-3 border-b border-slate-800">
-                <span className="text-xs text-slate-400 font-sans">Account Name:</span>
+                <span className="text-xs text-slate-400 font-sans">Account name:</span>
                 <span className="text-sm text-slate-200">{selectedRail.accountName}</span>
               </div>
 
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
-                  <span className="text-xs text-slate-400 font-sans block">Account Number:</span>
+                  <span className="text-xs text-slate-400 font-sans block">Account number:</span>
                   <span className="text-base font-bold text-emerald-400 tracking-wider">
                     {selectedRail.accountNumber}
                   </span>
@@ -801,7 +804,7 @@ function SendPageContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs text-slate-400 font-sans block">
-                    Payment Reference (Mandatory):
+                    Reference — include this:
                   </span>
                   <span className="text-base font-bold text-violet-300 tracking-wider">
                     {transfer.paymentReference}
@@ -821,7 +824,7 @@ function SendPageContent() {
             {/* P2P Proof Upload (If P2P or optional proof for sandbox bank) */}
             <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-200">Payment Proof (Optional in Sandbox)</span>
+                <span className="text-xs font-semibold text-slate-200">Payment proof (optional)</span>
                 {proofFileUploaded && (
                   <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
                     <Check className="w-3 h-3" /> Attached: transfer-slip.pdf
@@ -834,7 +837,7 @@ function SendPageContent() {
               >
                 <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
                 <div className="text-xs text-slate-300 font-medium">
-                  {proofFileUploaded ? "Proof attached! Click to replace" : "Click to simulate uploading bank slip / screenshot"}
+                  {proofFileUploaded ? "Proof attached — click to replace" : "Click to attach your receipt (simulated)"}
                 </div>
                 <div className="text-[10px] text-slate-500 font-mono mt-0.5">PNG, JPG, PDF up to 5MB</div>
               </div>
@@ -847,7 +850,7 @@ function SendPageContent() {
                 onClick={() => setCurrentStep("RAILS")}
                 className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-colors"
               >
-                Back to Rails
+                Back
               </button>
 
               <button
@@ -880,7 +883,7 @@ function SendPageContent() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-950/60 border border-violet-500/30 text-violet-300 text-xs font-mono mb-1">
                   Transfer Ref: {transfer.id}
                 </div>
-                <h2 className="text-2xl font-bold text-white">Transfer progress timeline</h2>
+                <h2 className="text-2xl font-bold text-white">Transfer progress</h2>
               </div>
 
               <div className="flex items-center gap-2">
@@ -908,96 +911,21 @@ function SendPageContent() {
               </div>
             </div>
 
-            {/* Vertical Status Timeline (as requested in Step 5 specification) */}
-            <div className="space-y-4 max-w-xl mx-auto py-2">
-              {[
-                { label: "Quote created", done: true, current: false },
-                { label: "Payment instructions issued", done: true, current: false },
-                {
-                  label: "Local payment detected",
-                  done: transfer.status !== "QUOTE_CREATED" && transfer.status !== "INSTRUCTIONS_ISSUED",
-                  current: transfer.status === "PAYMENT_DETECTED",
-                },
-                {
-                  label: "Payment verification",
-                  done: transfer.status === "COMPLETED" || transfer.status === "PAYMENT_VERIFIED",
-                  current: transfer.status === "PAYMENT_DETECTED" || transfer.status === "IN_REVIEW",
-                  badge:
-                    transfer.status === "PAYMENT_DETECTED" || transfer.status === "IN_REVIEW"
-                      ? "In review"
-                      : undefined,
-                },
-                {
-                  label: "USDC settlement",
-                  done: transfer.status === "COMPLETED",
-                  current: false,
-                  badge: transfer.status !== "COMPLETED" ? "Waiting" : undefined,
-                },
-                {
-                  label: "Pollar transfer",
-                  done: transfer.status === "COMPLETED",
-                  current: false,
-                  badge: transfer.status !== "COMPLETED" ? "Waiting" : undefined,
-                },
-                {
-                  label: "BOB payout",
-                  done: transfer.status === "COMPLETED",
-                  current: false,
-                  badge: transfer.status !== "COMPLETED" ? "Waiting" : "Simulated",
-                },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center gap-4">
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                      item.done
-                        ? "bg-emerald-500 text-black font-bold text-xs"
-                        : item.current
-                        ? "bg-amber-500 text-black font-bold text-xs animate-pulse ring-4 ring-amber-500/20"
-                        : "bg-slate-800 text-slate-500 text-xs"
-                    }`}
-                  >
-                    {item.done ? "✓" : idx + 1}
-                  </div>
-                  <div className="flex-1 flex items-center justify-between py-2 border-b border-slate-800/60">
-                    <span
-                      className={`text-sm ${
-                        item.done
-                          ? "text-white font-medium"
-                          : item.current
-                          ? "text-amber-300 font-semibold"
-                          : "text-slate-500"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                    {item.badge && (
-                      <span
-                        className={`text-[11px] font-mono px-2 py-0.5 rounded ${
-                          item.badge === "In review"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            : item.badge === "Simulated"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                            : "bg-slate-800 text-slate-400"
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+            {/* Status timeline */}
+            <div className="max-w-xl mx-auto py-2">
+              <Timeline steps={transferSteps(transfer.status)} ariaLabel="Transfer progress" />
             </div>
 
-            {/* Interactive Demo Operator Fast Trigger */}
+            {/* Demo shortcut: approve without visiting the queue */}
             <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-violet-950/40 to-slate-900 border border-amber-500/30 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono uppercase text-amber-400 tracking-wider">
-                  Hackathon Reviewer Action
+                  Demo shortcut
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono">Simulate Operator Approval</span>
+                <span className="text-[10px] text-slate-400 font-mono">Skip the queue</span>
               </div>
               <p className="text-xs text-slate-300">
-                In production, an authorized operator or automated banking webhook reviews the payment queue. For this demo, you can verify this transfer directly or inspect it inside the Operator Cockpit.
+                Normally an operator reviews this in the queue. For the demo, you can approve it right here.
               </p>
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 <button
@@ -1007,14 +935,14 @@ function SendPageContent() {
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-colors flex items-center gap-2"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Simulate Operator Approval & Release USDC</span>
+                  <span>Approve & release USDC</span>
                 </button>
 
                 <a
                   href="/operator/queue"
                   className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono transition-colors"
                 >
-                  Open Operator Payment Queue →
+                  Open payment queue →
                 </a>
               </div>
             </div>
@@ -1040,15 +968,15 @@ function SendPageContent() {
             {/* Receipt Details Card */}
             <div className="max-w-xl mx-auto p-6 rounded-2xl bg-[#090D1C] border border-slate-800 space-y-3 font-mono text-xs">
               <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400 font-sans">Transfer ID:</span>
+                <span className="text-slate-400 font-sans">Reference:</span>
                 <span className="text-white font-bold">{transfer.id}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400 font-sans">Delivered Amount:</span>
+                <span className="text-slate-400 font-sans">Delivered:</span>
                 <span className="text-emerald-400 font-bold">{transfer.usdcAmount} USDC</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400 font-sans">Estimated Payout:</span>
+                <span className="text-slate-400 font-sans">Payout (est.):</span>
                 <span className="text-white font-bold">{transfer.estimatedBobPayout} BOB</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-800">
@@ -1056,18 +984,18 @@ function SendPageContent() {
                 <span className="text-slate-300">{truncateHash(transfer.recipientWalletAddress, 8, 8)}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400 font-sans">Pollar transaction:</span>
+                <span className="text-slate-400 font-sans">Stellar transaction:</span>
                 <span className="text-violet-300 font-bold">
                   {truncateHash(transfer.pollarTxHash || "8b7c91e2f044a1b8c34f37829104041b6c7a91e2049281", 6, 6)}
                 </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400 font-sans">Stellar Ledger:</span>
+                <span className="text-slate-400 font-sans">Ledger:</span>
                 <span className="text-slate-400">{transfer.stellarLedger || "4829104"}</span>
               </div>
               <div className="flex justify-between py-1.5 text-slate-400">
-                <span className="font-sans">Settlement Status:</span>
-                <span className="text-emerald-400 font-bold">Settled on Stellar Testnet</span>
+                <span className="font-sans">Status:</span>
+                <span className="text-emerald-400 font-bold">Settled</span>
               </div>
             </div>
 
@@ -1117,13 +1045,13 @@ function SendPageContent() {
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="w-full max-w-md rounded-3xl bg-[#0D1224] border border-violet-900/50 p-6 space-y-4 text-slate-100 shadow-2xl">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div className="font-bold text-white text-sm">PollarBridge Remittance Slip</div>
+                <div className="font-bold text-white text-sm">Transfer receipt</div>
                 <button
                   type="button"
                   onClick={() => setShowReceiptModal(false)}
-                  className="text-slate-400 hover:text-white text-xs font-mono"
+                  className="text-slate-400 hover:text-white flex items-center gap-1 text-xs font-mono"
                 >
-                  Close [✕]
+                  Close <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -1147,17 +1075,17 @@ function SendPageContent() {
                   <span className="text-slate-300">Bolivia (BOB)</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Local Paid:</span>
+                  <span className="text-slate-400">You paid:</span>
                   <span className="text-white font-bold">
                     {formatCurrency(transfer.totalSourceAmount, transfer.sourceCurrency)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">USDC Released:</span>
+                  <span className="text-slate-400">USDC sent:</span>
                   <span className="text-emerald-400 font-bold">{transfer.usdcAmount} USDC</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">BOB Delivered:</span>
+                  <span className="text-slate-400">BOB payout:</span>
                   <span className="text-white font-bold">{transfer.estimatedBobPayout} BOB</span>
                 </div>
                 <div className="flex justify-between">
@@ -1197,7 +1125,7 @@ export default function SendPage() {
       fallback={
         <AppShell>
           <div className="py-16 text-center text-slate-400 font-mono text-sm">
-            Loading sender journey...
+            Loading...
           </div>
         </AppShell>
       }

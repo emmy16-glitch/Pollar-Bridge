@@ -19,6 +19,7 @@ import {
   Lock,
 } from "lucide-react";
 import { formatCurrency, truncateHash, formatRelativeTime } from "@/lib/formatters";
+import Stat from "@/components/ui/Stat";
 
 export default function OperatorOverviewPage() {
   const [loading, setLoading] = useState(true);
@@ -67,6 +68,15 @@ export default function OperatorOverviewPage() {
   const failedTransfers = transfers.filter((t) => t.status === "REJECTED").length;
   const activeCorridorsCount = corridorsList.filter((c) => c.status === "ACTIVE").length;
   const healthyProvidersCount = providersList.filter((p) => p.status === "Healthy").length;
+
+  // Deterministic 7-bucket sparkline from live queue order (newest first).
+  const sparkFor = (pred: (t: any) => boolean): number[] => {
+    const buckets = new Array(7).fill(0);
+    transfers.forEach((t, i) => {
+      if (pred(t)) buckets[i % 7] += 1;
+    });
+    return buckets;
+  };
 
   return (
     <AppShell>
@@ -120,79 +130,52 @@ export default function OperatorOverviewPage() {
           </span>
         </div>
 
-        {/* Section 5 Metrics Grid */}
+        {/* Section 5 Metrics Grid — Stat cards with live sparklines */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Link
+          <Stat
+            label="Pending local payments"
+            value={String(Math.max(pendingPayments, 1))}
+            hint="Needs verification"
+            tone="amber"
+            spark={sparkFor((t) => t.status === "PAYMENT_DETECTED")}
             href="/operator/queue?filter=PAYMENT_DETECTED"
-            className="p-4 rounded-2xl bg-[#0F162E] border border-amber-500/30 hover:border-amber-500 transition-all space-y-1 block"
-          >
-            <div className="text-[11px] font-mono text-slate-400 uppercase">
-              Pending local payments
-            </div>
-            <div className="text-2xl font-bold font-mono text-amber-400">
-              {Math.max(pendingPayments, 1)}
-            </div>
-            <div className="text-[10px] text-amber-300/80">Needs verification →</div>
-          </Link>
-
-          <Link
+          />
+          <Stat
+            label="Under review"
+            value={String(Math.max(underReview, 1))}
+            hint="Awaiting docs"
+            tone="violet"
+            spark={sparkFor((t) => t.status === "IN_REVIEW")}
             href="/operator/queue?filter=IN_REVIEW"
-            className="p-4 rounded-2xl bg-[#0F162E] border border-violet-900/40 hover:border-violet-500 transition-all space-y-1 block"
-          >
-            <div className="text-[11px] font-mono text-slate-400 uppercase">
-              Under review
-            </div>
-            <div className="text-2xl font-bold font-mono text-violet-300">
-              {Math.max(underReview, 1)}
-            </div>
-            <div className="text-[10px] text-slate-400">Awaiting docs →</div>
-          </Link>
-
-          <div className="p-4 rounded-2xl bg-[#0F162E] border border-slate-800 space-y-1">
-            <div className="text-[11px] font-mono text-slate-400 uppercase">
-              USDC settlements pending
-            </div>
-            <div className="text-2xl font-bold font-mono text-white">
-              {Math.max(settlementsPending, 1)}
-            </div>
-            <div className="text-[10px] text-emerald-400">Awaiting local clear</div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-[#0F162E] border border-slate-800 space-y-1">
-            <div className="text-[11px] font-mono text-slate-400 uppercase">
-              Failed transfers
-            </div>
-            <div className="text-2xl font-bold font-mono text-rose-400">
-              {failedTransfers}
-            </div>
-            <div className="text-[10px] text-slate-500">Zero tolerance</div>
-          </div>
-
-          <Link
+          />
+          <Stat
+            label="USDC settlements pending"
+            value={String(Math.max(settlementsPending, 1))}
+            hint="Awaiting local clear"
+            tone="slate"
+            spark={sparkFor((t) => t.status === "PAYMENT_DETECTED" || t.status === "IN_REVIEW")}
+          />
+          <Stat
+            label="Failed transfers"
+            value={String(failedTransfers)}
+            hint="Zero tolerance"
+            tone="rose"
+            spark={sparkFor((t) => t.status === "REJECTED")}
+          />
+          <Stat
+            label="Active corridors"
+            value={String(corridorsList.length > 0 ? activeCorridorsCount : 4)}
+            hint="Africa → Bolivia"
+            tone="emerald"
             href="/operator/corridors"
-            className="p-4 rounded-2xl bg-[#0F162E] border border-slate-800 hover:border-violet-500 transition-all space-y-1 block"
-          >
-            <div className="text-[11px] font-mono text-slate-400 uppercase">
-              Active corridors
-            </div>
-            <div className="text-2xl font-bold font-mono text-emerald-400">
-              {corridorsList.length > 0 ? activeCorridorsCount : 4}
-            </div>
-            <div className="text-[10px] text-slate-400">Africa → Bolivia →</div>
-          </Link>
-
-          <Link
+          />
+          <Stat
+            label="Healthy providers"
+            value={providersList.length > 0 ? `${healthyProvidersCount} / ${providersList.length}` : "4 / 5"}
+            hint="Adapters active"
+            tone="emerald"
             href="/operator/providers"
-            className="p-4 rounded-2xl bg-[#0F162E] border border-slate-800 hover:border-violet-500 transition-all space-y-1 block"
-          >
-            <div className="text-[11px] font-mono text-slate-400 uppercase">
-              Healthy providers
-            </div>
-            <div className="text-2xl font-bold font-mono text-emerald-400">
-              {providersList.length > 0 ? `${healthyProvidersCount} / ${providersList.length}` : "4 / 5"}
-            </div>
-            <div className="text-[10px] text-emerald-400">Adapters active →</div>
-          </Link>
+          />
         </div>
 
         {/* Quick Operations Links */}

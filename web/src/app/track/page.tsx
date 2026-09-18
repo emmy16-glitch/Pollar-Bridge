@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { Search, ArrowRight, ShieldCheck } from "lucide-react";
+import AgentInput from "@/components/ui/AgentInput";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { ShieldCheck } from "lucide-react";
 
 interface RecentTransfer {
   id: string;
@@ -17,12 +19,6 @@ export default function TrackSearchPage() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<RecentTransfer[]>([]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
-    router.push(`/track/${query.trim().toUpperCase()}`);
-  };
 
   // Live recent transfers (replaces the old hardcoded demo list)
   useEffect(() => {
@@ -53,26 +49,22 @@ export default function TrackSearchPage() {
           </p>
         </div>
 
-        {/* Lookup Box */}
-        <form onSubmit={handleSubmit} className="relative">
-          <div className="rounded-2xl bg-[#0F162E] border border-violet-900/40 p-2 shadow-2xl flex items-center gap-2">
-            <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter transfer ID e.g. PB-NG-20481"
-              className="flex-1 bg-transparent px-2 py-3 text-sm text-white placeholder-slate-500 focus:outline-none font-mono"
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs transition-colors shrink-0 flex items-center gap-1.5"
-            >
-              <span>Track Now</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </form>
+        {/* Lookup Box — search-first hero pattern */}
+        <AgentInput
+          value={query}
+          onChange={setQuery}
+          onSubmit={() => {
+            if (!query.trim()) return;
+            router.push(`/track/${query.trim().toUpperCase()}`);
+          }}
+          placeholder="Enter transfer ID e.g. PB-NG-20481"
+          buttonLabel="Track Now"
+          hints={recent.map((t) => t.id).slice(0, 3)}
+          onHintClick={(hint) => {
+            const match = recent.find((t) => t.id === hint);
+            router.push(`/track/${(match?.trackingToken ?? hint).toUpperCase()}`);
+          }}
+        />
 
         {/* Quick Recent Transfers List */}
         {recent.length > 0 && (
@@ -98,15 +90,7 @@ export default function TrackSearchPage() {
                   </span>
                   <span className="text-[11px] text-slate-400">{t.sourceCountry} → {t.destCountry}</span>
                 </div>
-                <span
-                  className={`text-[10px] font-mono px-2 py-0.5 rounded ${
-                    t.status === "COMPLETED"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                      : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                  }`}
-                >
-                  {t.status}
-                </span>
+                <StatusBadge status={t.status} />
               </button>
             ))}
           </div>

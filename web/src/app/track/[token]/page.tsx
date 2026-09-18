@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
+import StatusBadge from "@/components/ui/StatusBadge";
+import Timeline, { TimelineStep } from "@/components/ui/Timeline";
+import StreamingText from "@/components/ui/StreamingText";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -89,6 +92,32 @@ export default function PublicTrackPage() {
   }
 
   const isCompleted = transfer.status === "COMPLETED";
+  const hasPaid = Boolean(transfer.paidAt) || isCompleted;
+
+  const steps: TimelineStep[] = [
+    { label: "Transfer quote created", detail: formatDate(transfer.createdAt), state: "done" },
+    {
+      label: "Local payment confirmed",
+      detail: transfer.paidAt ? formatDate(transfer.paidAt) : hasPaid ? "Confirmed" : "Pending",
+      state: hasPaid ? "done" : "current",
+    },
+    {
+      label: "Operator review & Pollar release",
+      detail: isCompleted ? formatDate(transfer.verifiedAt) : hasPaid ? "In review" : "Waiting for payment",
+      state: isCompleted ? "done" : hasPaid ? "current" : "pending",
+    },
+    {
+      label: "USDC settled to recipient wallet",
+      detail: isCompleted ? formatDate(transfer.settledAt) : "Waiting",
+      state: isCompleted ? "done" : "pending",
+    },
+  ];
+
+  const liveLine = isCompleted
+    ? `Delivered · ${transfer.usdcAmount} USDC settled · ledger ${transfer.stellarLedger || "confirmed"}`
+    : hasPaid
+    ? "Payment detected · operator verification in progress · USDC locked until verified"
+    : "Awaiting local payment · quote reserved · nothing released yet";
 
   return (
     <AppShell>
@@ -125,16 +154,11 @@ export default function PublicTrackPage() {
             </div>
 
             <div className="text-right">
-              <span
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold ${
-                  isCompleted
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full bg-current animate-pulse"></span>
-                {isCompleted ? "Delivered" : "In Progress"}
-              </span>
+              <StatusBadge
+                status={transfer.status}
+                label={isCompleted ? "Delivered" : "In Progress"}
+                pulse={!isCompleted}
+              />
             </div>
           </div>
 
@@ -168,6 +192,11 @@ export default function PublicTrackPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
               Status: {isCompleted ? "USDC delivered to recipient wallet" : "Under operator verification"}
             </div>
+            <StreamingText
+              text={liveLine}
+              className="text-[11px] text-emerald-300/90"
+              doneLabel={liveLine}
+            />
             <div className="text-xs text-slate-400">
               BOB payout: <span className="text-violet-300 font-mono">simulated for demo</span> · Rate source: {transfer.rateSource}
             </div>
@@ -178,66 +207,7 @@ export default function PublicTrackPage() {
             <h3 className="text-xs font-mono uppercase text-slate-400 tracking-wider">
               Verification & Delivery Timeline
             </h3>
-
-            <div className="space-y-3 font-mono text-xs">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-500 text-black flex items-center justify-center font-bold text-[11px]">
-                  ✓
-                </div>
-                <div className="flex-1 flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-slate-200">Transfer quote created</span>
-                  <span className="text-slate-400">{formatDate(transfer.createdAt)}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                    transfer.paidAt ? "bg-emerald-500 text-black" : "bg-slate-800 text-slate-500"
-                  }`}
-                >
-                  {transfer.paidAt ? "✓" : "2"}
-                </div>
-                <div className="flex-1 flex justify-between py-1 border-b border-slate-800">
-                  <span className={transfer.paidAt ? "text-slate-200" : "text-slate-500"}>
-                    Local payment confirmed
-                  </span>
-                  <span className="text-slate-400">{transfer.paidAt ? formatDate(transfer.paidAt) : "Pending"}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                    isCompleted ? "bg-emerald-500 text-black" : "bg-amber-500 text-black"
-                  }`}
-                >
-                  {isCompleted ? "✓" : "3"}
-                </div>
-                <div className="flex-1 flex justify-between py-1 border-b border-slate-800">
-                  <span className={isCompleted ? "text-slate-200" : "text-amber-300"}>
-                    Operator review & Pollar release
-                  </span>
-                  <span className="text-slate-400">{isCompleted ? formatDate(transfer.verifiedAt) : "In review"}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                    isCompleted ? "bg-emerald-500 text-black" : "bg-slate-800 text-slate-500"
-                  }`}
-                >
-                  {isCompleted ? "✓" : "4"}
-                </div>
-                <div className="flex-1 flex justify-between py-1 border-b border-slate-800">
-                  <span className={isCompleted ? "text-slate-200" : "text-slate-500"}>
-                    USDC settled to recipient wallet
-                  </span>
-                  <span className="text-slate-400">{isCompleted ? formatDate(transfer.settledAt) : "Waiting"}</span>
-                </div>
-              </div>
-            </div>
+            <Timeline steps={steps} ariaLabel="Transfer verification and delivery timeline" />
           </div>
 
           {/* Cryptographic reference if available */}

@@ -16,6 +16,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatCurrency, truncateHash, formatDate } from "@/lib/formatters";
+import StatusBadge from "@/components/ui/StatusBadge";
+import Timeline from "@/components/ui/Timeline";
+import { transferSteps } from "@/components/ui/transferSteps";
 
 export default function TransferStatusDirectPage() {
   const params = useParams();
@@ -74,7 +77,7 @@ export default function TransferStatusDirectPage() {
       <AppShell>
         <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
           <RefreshCw className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
-          <p className="text-sm font-mono text-slate-400">Loading transfer status...</p>
+          <p className="text-sm font-mono text-slate-400">Loading transfer...</p>
         </div>
       </AppShell>
     );
@@ -85,13 +88,13 @@ export default function TransferStatusDirectPage() {
       <AppShell>
         <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-4">
           <div className="p-8 rounded-3xl bg-[#0F162E] border border-slate-800 space-y-3">
-            <h2 className="text-xl font-bold text-white">Transfer Not Found</h2>
+            <h2 className="text-xl font-bold text-white">Transfer not found</h2>
             <p className="text-xs text-slate-400">Reference: {id}</p>
             <Link
               href="/send"
               className="inline-block px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold"
             >
-              Start New Transfer
+              Start a transfer
             </Link>
           </div>
         </div>
@@ -126,7 +129,7 @@ export default function TransferStatusDirectPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
             <div>
               <span className="text-[11px] font-mono uppercase text-violet-400 tracking-wider">
-                Transfer Ref: {transfer.id}
+                Reference: {transfer.id}
               </span>
               <h1 className="text-2xl font-bold text-white mt-0.5">
                 {isCompleted ? "Transfer complete" : "Transfer in progress"}
@@ -137,117 +140,34 @@ export default function TransferStatusDirectPage() {
             </div>
 
             <div>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-mono font-semibold ${
-                  isCompleted
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                }`}
-              >
-                {transfer.status}
-              </span>
+              <StatusBadge status={transfer.status} pulse={!isCompleted} />
             </div>
           </div>
 
-          {/* Vertical Timeline */}
-          <div className="space-y-4 max-w-xl mx-auto py-2">
-            {[
-              { label: "Quote created", done: true, current: false },
-              { label: "Payment instructions issued", done: true, current: false },
-              {
-                label: "Local payment detected",
-                done: transfer.status !== "QUOTE_CREATED" && transfer.status !== "INSTRUCTIONS_ISSUED",
-                current: transfer.status === "PAYMENT_DETECTED",
-              },
-              {
-                label: "Payment verification",
-                done: transfer.status === "COMPLETED" || transfer.status === "PAYMENT_VERIFIED",
-                current: transfer.status === "PAYMENT_DETECTED" || transfer.status === "IN_REVIEW",
-                badge:
-                  transfer.status === "PAYMENT_DETECTED" || transfer.status === "IN_REVIEW"
-                    ? "In review"
-                    : undefined,
-              },
-              {
-                label: "USDC settlement",
-                done: isCompleted,
-                current: false,
-                badge: !isCompleted ? "Waiting" : undefined,
-              },
-              {
-                label: "Pollar transfer",
-                done: isCompleted,
-                current: false,
-                badge: !isCompleted ? "Waiting" : undefined,
-              },
-              {
-                label: "BOB payout",
-                done: isCompleted,
-                current: false,
-                badge: !isCompleted ? "Waiting" : "Simulated",
-              },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-4">
-                <div
-                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                    item.done
-                      ? "bg-emerald-500 text-black font-bold text-xs"
-                      : item.current
-                      ? "bg-amber-500 text-black font-bold text-xs animate-pulse ring-4 ring-amber-500/20"
-                      : "bg-slate-800 text-slate-500 text-xs"
-                  }`}
-                >
-                  {item.done ? "✓" : idx + 1}
-                </div>
-                <div className="flex-1 flex items-center justify-between py-2 border-b border-slate-800/60 font-mono text-xs">
-                  <span
-                    className={`${
-                      item.done
-                        ? "text-white font-medium"
-                        : item.current
-                        ? "text-amber-300 font-semibold"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                  {item.badge && (
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded ${
-                        item.badge === "In review"
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : item.badge === "Simulated"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          : "bg-slate-800 text-slate-400"
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+          {/* Timeline */}
+          <div className="max-w-xl mx-auto py-2">
+            <Timeline steps={transferSteps(transfer.status)} ariaLabel="Transfer progress" />
           </div>
 
-          {/* Quick Details */}
+          {/* Details */}
           <div className="p-4 rounded-2xl bg-[#090D1C] border border-slate-800 space-y-2 font-mono text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-400">Total local amount:</span>
+              <span className="text-slate-400">You paid:</span>
               <span className="text-white font-bold">
                 {formatCurrency(transfer.totalSourceAmount, transfer.sourceCurrency)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">USDC delivered:</span>
+              <span className="text-slate-400">Delivered:</span>
               <span className="text-emerald-400 font-bold">{transfer.usdcAmount} USDC</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Estimated BOB:</span>
+              <span className="text-slate-400">BOB payout (est.):</span>
               <span className="text-white font-bold">{transfer.estimatedBobPayout} BOB</span>
             </div>
             {transfer.pollarTxHash && (
               <div className="flex justify-between">
-                <span className="text-slate-400">Pollar Tx:</span>
+                <span className="text-slate-400">Stellar tx:</span>
                 <span className="text-violet-300">{truncateHash(transfer.pollarTxHash, 8, 8)}</span>
               </div>
             )}
@@ -263,11 +183,11 @@ export default function TransferStatusDirectPage() {
                 className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs flex items-center gap-1.5 transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Simulate Operator Approval & Release USDC</span>
+                <span>Approve & release (demo)</span>
               </button>
             ) : (
               <div className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4" /> USDC Confirmed & Settled
+                <CheckCircle2 className="w-4 h-4" /> USDC sent
               </div>
             )}
 
@@ -276,7 +196,7 @@ export default function TransferStatusDirectPage() {
                 href={`/track/${transfer.trackingToken}`}
                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5"
               >
-                <span>Public Tracking</span>
+                <span>Public tracking link</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </Link>
             </div>
