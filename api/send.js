@@ -6,12 +6,21 @@
 // dist/ is gitignored so it never reaches the deployment upload.
 import { buildApp } from "../src/app.js";
 import { buildContainer } from "../src/container.js";
+import { seedDemoData, shouldAutoSeed } from "../src/seed.js";
 
 let cachedApp = null;
 
 export default async function handler(req, res) {
   if (!cachedApp) {
-    cachedApp = buildApp(buildContainer());
+    const container = buildContainer();
+    if (shouldAutoSeed()) {
+      try {
+        await seedDemoData(container);
+      } catch (e) {
+        console.error("demo seed failed:", e?.message ?? e);
+      }
+    }
+    cachedApp = buildApp(container);
   }
   return cachedApp(req, res);
 }

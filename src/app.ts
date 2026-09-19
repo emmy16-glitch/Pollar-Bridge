@@ -3,6 +3,7 @@ import express from "express";
 import type { Container } from "./container.js";
 import { agentRoutes } from "./routes/agent.js";
 import { corridorRoutes } from "./routes/corridors.js";
+import { demoRoutes } from "./routes/demo.js";
 import { extraRoutes } from "./routes/extra.js";
 import { healthRoutes } from "./routes/health.js";
 import { operatorRoutes } from "./routes/operator.js";
@@ -59,6 +60,7 @@ export function buildApp(c: Container): express.Express {
   api.use(extraRoutes(c));
   api.use(pollerRoutes(c));
   api.use(agentRoutes(c));
+  api.use(demoRoutes(c));
   app.use("/api", api);
 
   app.get("/", (_req, res) =>
