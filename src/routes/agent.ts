@@ -18,9 +18,33 @@ export interface AgentQuote {
 
 export const __agentQuotes = new Map<string, AgentQuote>();
 
+// Bound temporary memory: memos carry a 15-min TTL; prune expired entries
+// (with a retention grace for status queries) and cap the map so the cache
+// cannot grow without bound.
+const MAX_AGENT_QUOTES = 1000;
+// Keep expired memos 1h for GET /agent/status/:memo, then evict.
+const AGENT_QUOTE_RETENTION_MS = 60 * 60 * 1000;
+
+export function pruneAgentQuotes(now = Date.now()): number {
+  let removed = 0;
+  for (const [memo, q] of __agentQuotes) {
+    if (now - new Date(q.expiresAt).getTime() > AGENT_QUOTE_RETENTION_MS - 15 * 60 * 1000) {
+      __agentQuotes.delete(memo);
+      removed += 1;
+    }
+  }
+  while (__agentQuotes.size > MAX_AGENT_QUOTES) {
+    const oldest = __agentQuotes.keys().next();
+    if (oldest.done) break;
+    __agentQuotes.delete(oldest.value);
+    removed += 1;
+  }
+  return removed;
+}
+
 const quoteSchema = z.object({
   corridorId: z.string().min(3),
-  sourceAmount: z.number().positive(),
+  sourceAmount: z.number().finite().positive(),
 });
 
 const transferSchema = z.object({
@@ -46,6 +70,7 @@ export function agentRoutes(c: Container): Router {
       const payTo = process.env.AGENT_SETTLE_WALLET || "G-AGENT-ESCROW-sandbox";
       const memo = `PB-AGENT-${randomBytes(4).toString("hex").toUpperCase()}`;
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      pruneAgentQuotes();
       __agentQuotes.set(memo, {
         corridorId: body.corridorId,
         sourceAmount: body.sourceAmount,

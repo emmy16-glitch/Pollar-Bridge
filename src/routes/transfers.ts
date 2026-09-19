@@ -9,7 +9,7 @@ import { TERMINAL_STATUSES } from "../payments/orchestration/stateMachine.js";
 
 const createSchema = z.object({
   corridorId: z.string().min(3),
-  sourceAmount: z.number().positive(),
+  sourceAmount: z.number().finite().positive(),
   senderName: z.string().max(120).optional(),
   idempotencyKey: z.string().max(120).optional(),
 });
@@ -61,21 +61,26 @@ export function transferRoutes(c: Container): Router {
         res.end();
         return;
       }
-      const onUpdate = (u: { transferId: string }) => {
-        if (u.transferId !== req.params.id) return;
+      // Subscribe to this transfer's own channel (emitTransfer already emits
+      // `transfer:<id>` alongside the global event). The old code listened on
+      // the global "transfer" bus, waking EVERY open SSE stream on EVERY
+      // transfer update — O(streams) work per emit plus a retained closure
+      // per stream on a shared emitter.
+      const channel = `transfer:${req.params.id}`;
+      const onUpdate = () => {
         try {
           const cur = c.transfers.get(req.params.id);
           send(cur);
           if (TERMINAL_STATUSES.includes(cur.status)) {
-            transferEvents.removeListener("transfer", onUpdate);
+            transferEvents.removeListener(channel, onUpdate);
             res.end();
           }
         } catch {
           // transfer deleted mid-stream
         }
       };
-      transferEvents.on("transfer", onUpdate);
-      req.on("close", () => transferEvents.removeListener("transfer", onUpdate));
+      transferEvents.on(channel, onUpdate);
+      req.on("close", () => transferEvents.removeListener(channel, onUpdate));
     } catch (e: unknown) {
       res.status(404).json({ error: e instanceof Error ? e.message : "not found" });
     }
