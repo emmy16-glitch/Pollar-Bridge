@@ -4,7 +4,7 @@ import type { Container } from "../container.js";
 
 const quoteSchema = z.object({
   corridorId: z.string().min(3),
-  sourceAmount: z.number().positive(),
+  sourceAmount: z.number().finite().positive(),
 });
 
 export function quoteRoutes(c: Container): Router {

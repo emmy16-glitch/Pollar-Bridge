@@ -1,5 +1,6 @@
 import { v4 as uuid } from "uuid";
 import type { Transfer, TransferStatus } from "../../types.js";
+import { assertFinitePositive, assertNonBlank, normalizeOptionalText } from "../../validation.js";
 import { getCorridor } from "../corridors/corridorRegistry.js";
 import type { ProviderRegistry } from "../providers/providerRegistry.js";
 import { MemoryStore } from "../../store/memoryStore.js";
@@ -28,6 +29,12 @@ export class TransferService {
   ) {}
 
   createTransfer(corridorId: string, sourceAmount: number, senderName?: string, idempotencyKey?: string): Transfer {
+    // No empty transactions: blank corridor/amount rejected, blank sender/key
+    // normalized to absent (defaults apply) instead of stored as "".
+    corridorId = assertNonBlank(corridorId, "corridorId");
+    sourceAmount = assertFinitePositive(sourceAmount, "sourceAmount");
+    senderName = normalizeOptionalText(senderName);
+    idempotencyKey = normalizeOptionalText(idempotencyKey);
     // Safe retries: same key returns the original transfer, never a duplicate.
     if (idempotencyKey) {
       const existing = this.store.getByIdempotency(idempotencyKey);

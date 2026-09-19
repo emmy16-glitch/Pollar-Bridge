@@ -96,7 +96,7 @@ export function pollerRoutes(c: Container): Router {
 
   // POST /users/register {externalId, email?}
   const registerSchema = z.object({
-    externalId: z.string().min(1).max(120),
+    externalId: z.string().trim().min(1).max(120),
     email: z.string().email().optional(),
   });
   r.post("/users/register", rateLimit(60), async (req, res) => {

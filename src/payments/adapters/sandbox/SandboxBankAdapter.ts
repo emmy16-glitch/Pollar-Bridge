@@ -10,6 +10,7 @@ import type {
   RefundResult,
   VerificationResult,
 } from "../../../types.js";
+import { assertPaymentId, assertPaymentRequest } from "../../../validation.js";
 import type { LocalRailProvider } from "../LocalRailProvider.js";
 
 interface SandboxPayment {
@@ -50,6 +51,7 @@ export class SandboxBankProvider implements LocalRailProvider {
   }
 
   async createPayment(req: PaymentRequest): Promise<PaymentInstruction> {
+    assertPaymentRequest(req, this.providerId);
     const paymentId = `pay_${uuid().slice(0, 8)}`;
     this.payments.set(paymentId, {
       paymentId,
@@ -75,6 +77,7 @@ export class SandboxBankProvider implements LocalRailProvider {
   }
 
   async getPaymentStatus(paymentId: string): Promise<PaymentStatus> {
+    assertPaymentId(paymentId, this.providerId);
     const p = this.payments.get(paymentId);
     if (!p) throw new Error(`Unknown payment: ${paymentId}`);
     return { paymentId, status: p.status, raw: { reference: p.reference, amount: p.amount } };
@@ -82,12 +85,14 @@ export class SandboxBankProvider implements LocalRailProvider {
 
   // Test helper: simulate user paying (detection, NOT verification).
   simulateIncomingPayment(paymentId: string): void {
+    assertPaymentId(paymentId, this.providerId);
     const p = this.payments.get(paymentId);
     if (!p) throw new Error(`Unknown payment: ${paymentId}`);
     p.status = "detected";
   }
 
   async verifyPayment(paymentId: string): Promise<VerificationResult> {
+    assertPaymentId(paymentId, this.providerId);
     const p = this.payments.get(paymentId);
     if (!p) throw new Error(`Unknown payment: ${paymentId}`);
     p.verified = true;
@@ -96,11 +101,13 @@ export class SandboxBankProvider implements LocalRailProvider {
   }
 
   async cancelPayment(paymentId: string): Promise<CancelResult> {
+    assertPaymentId(paymentId, this.providerId);
     this.payments.delete(paymentId);
     return { cancelled: true, paymentId };
   }
 
   async refundPayment(paymentId: string): Promise<RefundResult> {
+    assertPaymentId(paymentId, this.providerId);
     return { refunded: true, paymentId, reason: "sandbox refund" };
   }
 }

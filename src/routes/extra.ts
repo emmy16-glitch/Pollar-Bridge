@@ -90,6 +90,12 @@ export function extraRoutes(c: Container): Router {
     const body = req.body as { event?: string; paymentId?: string; payment_id?: string };
     const paymentId = body.paymentId ?? body.payment_id ?? "";
     try {
+      // An event naming a payment without identifying it is a malformed
+      // webhook — never ack it as ok, otherwise empty payloads look delivered.
+      if (!paymentId && body.event) {
+        res.status(400).json({ error: "webhook event requires paymentId (or payment_id)" });
+        return;
+      }
       if (paymentId && body.event === "payment.verified") {
         const t = await c.transfers.verifyPayment(paymentId, "auto");
         c.audit.record("api", "webhook.verified", paymentId, provider);

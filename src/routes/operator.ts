@@ -70,7 +70,8 @@ export function operatorRoutes(c: Container): Router {
 
   r.post("/operator/payments/:paymentId/reject", ...guard, (req, res) => {
     try {
-      const reason = typeof req.body?.reason === "string" ? req.body.reason : "operator rejected";
+      const raw = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+      const reason = raw.length > 0 ? raw : "operator rejected";
       const t = c.transfers.rejectPayment(req.params.paymentId, reason);
       c.audit.record("operator", "payment.reject", req.params.paymentId, reason);
       res.json(t);
@@ -81,7 +82,8 @@ export function operatorRoutes(c: Container): Router {
 
   r.post("/operator/payments/:paymentId/refund", ...guard, async (req, res) => {
     try {
-      const reason = typeof req.body?.reason === "string" ? req.body.reason : "operator refund";
+      const raw = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+      const reason = raw.length > 0 ? raw : "operator refund";
       const t = await c.transfers.refundPayment(req.params.paymentId, reason);
       c.audit.record("operator", "payment.refund", req.params.paymentId, reason);
       res.json(t);
