@@ -158,7 +158,7 @@ export default function OperatorTransfersPage() {
                           Review
                         </Link>
                         <Link
-                          href={`/track/${t.trackingToken}`}
+                          href={`/track/${t.id}`}
                           className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
                         >
                           Public
