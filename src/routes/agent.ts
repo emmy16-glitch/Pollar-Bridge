@@ -116,8 +116,6 @@ export function agentRoutes(c: Container): Router {
         res.status(409).json({ error: "memo already redeemed" });
         return;
       }
-      q.redeemed = true;
-      __agentQuotes.set(body.memo, q);
       const t = c.transfers.createTransfer(
         q.corridorId,
         q.sourceAmount,
@@ -125,6 +123,10 @@ export function agentRoutes(c: Container): Router {
         `agent_${body.memo}`,
       );
       await c.transfers.issuePaymentInstructions(t.transferId);
+      // Only consume the memo after the transfer is fully created. If a
+      // provider/corridor fails transiently, the paid quote remains retryable.
+      q.redeemed = true;
+      __agentQuotes.set(body.memo, q);
       c.audit.record("agent", "agent.transfer.create", t.transferId, body.memo);
       const full = c.transfers.get(t.transferId);
       res.status(201).json({
