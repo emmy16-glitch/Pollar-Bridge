@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import {
@@ -21,7 +21,7 @@ export default function ReconciliationPage() {
   const [reconciling, setReconciling] = useState(false);
   const [filterResult, setFilterResult] = useState("ALL");
 
-  const fetchReconciliation = async () => {
+  const fetchReconciliation = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/reconciliation");
@@ -34,11 +34,12 @@ export default function ReconciliationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchReconciliation();
-  }, []);
+    const timeout = window.setTimeout(() => { void fetchReconciliation(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchReconciliation]);
 
   const handleRunAutoReconcile = async () => {
     setReconciling(true);
