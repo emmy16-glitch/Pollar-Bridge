@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { History, Search, ArrowRight, ExternalLink, RefreshCw, Filter } from "lucide-react";
@@ -12,7 +12,7 @@ export default function HistoryPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchTransfers = async () => {
+  const fetchTransfers = useCallback(async () => {
     setLoading(true);
     try {
       const url = filterStatus === "ALL" ? "/api/transfers" : `/api/transfers?status=${filterStatus}`;
@@ -26,11 +26,12 @@ export default function HistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   useEffect(() => {
-    fetchTransfers();
-  }, [filterStatus]);
+    const timeout = window.setTimeout(() => { void fetchTransfers(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchTransfers]);
 
   const filtered = transfers.filter((t) => {
     if (!searchQuery) return true;
