@@ -176,6 +176,9 @@ export interface Transfer {
   // UNIQUE EDGE: public share token for recipient tracking links.
   // Safe to put in a URL — reveals status/timeline only, never PII/secrets.
   shareToken: string;
+  /** Recipient details are private transfer data; never include them in public timelines/listings. */
+  recipientName?: string;
+  recipientWalletAddress?: string;
   /** Idempotency key supplied on creation (header or body), for safe retries. */
   idempotencyKey?: string;
   sourceAmount: number;
