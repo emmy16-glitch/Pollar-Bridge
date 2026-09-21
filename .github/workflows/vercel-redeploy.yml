@@ -1,0 +1,51 @@
+name: Vercel Production Redeploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-api:
+    if: contains(github.event.head_commit.message, '[deploy-vercel]')
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Vercel token exists
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN secret is not configured in this repository."
+            exit 1
+          fi
+      - name: Link API project
+        run: |
+          mkdir -p .vercel
+          printf '%s\n' '{"orgId":"team_B3UZA8Zjc2LnB8A2nJhjfe5n","projectId":"prj_HkPkhHAwZWcO7j0EcLQsbrO6bO8o"}' > .vercel/project.json
+      - name: Deploy API to production
+        run: npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
+
+  deploy-web:
+    if: contains(github.event.head_commit.message, '[deploy-vercel]')
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Vercel token exists
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN secret is not configured in this repository."
+            exit 1
+          fi
+      - name: Link web project
+        working-directory: web
+        run: |
+          mkdir -p .vercel
+          printf '%s\n' '{"orgId":"team_B3UZA8Zjc2LnB8A2nJhjfe5n","projectId":"prj_pdznU2WNNCtdasR7w6pv79HuRopv"}' > .vercel/project.json
+      - name: Deploy web to production
+        working-directory: web
+        run: npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
