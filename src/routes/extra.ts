@@ -54,7 +54,6 @@ export function extraRoutes(c: Container): Router {
         settlementAmount: t.settlementAmount,
         corridorId: t.corridorId,
         pollarTxHash: t.pollarTxHash ?? null,
-        pollarWallet: t.pollarWallet ?? null,
         timeline: t.history,
       });
     } catch (e: unknown) {
