@@ -5,6 +5,7 @@ import "@pollar/react/styles.css";
 import PollarProviderWrapper from "@/components/PollarProviderWrapper";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://pollar-bridge.vercel.app"),
   title: "PollarBridge Africa — African Local Rails to Pollar USDC & Bolivian Payout",
   description:
     "Send money from Africa to Bolivia. Pay locally, we verify and settle USDC, they receive BOB.",
