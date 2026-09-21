@@ -33,7 +33,7 @@ export class TransferService {
     // normalized to absent (defaults apply) instead of stored as "".
     corridorId = assertNonBlank(corridorId, "corridorId");
     sourceAmount = assertFinitePositive(sourceAmount, "sourceAmount");
-    senderName = normalizeOptionalText(senderName);
+    const hasSenderName = Boolean(normalizeOptionalText(senderName));
     idempotencyKey = normalizeOptionalText(idempotencyKey);
     // Safe retries: same key returns the original transfer, never a duplicate.
     if (idempotencyKey) {
@@ -59,7 +59,9 @@ export class TransferService {
       totalFees: quote.totalFees,
       settlementAmount: quote.settlementAmount,
       status: "QUOTE_CREATED",
-      history: [{ status: "QUOTE_CREATED", at: now(), note: `sender=${senderName ?? "anon"} corridor=${corridor.id}` }],
+      // Never put sender PII in timeline/audit-like fields: transfer history
+      // is surfaced by operational and demo APIs.
+      history: [{ status: "QUOTE_CREATED", at: now(), note: `sender=${hasSenderName ? "provided" : "anonymous"} corridor=${corridor.id}` }],
       createdAt: now(),
       updatedAt: now(),
     };
