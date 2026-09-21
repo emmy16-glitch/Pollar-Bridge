@@ -10,6 +10,20 @@ const PENDING: string[] = ["AWAITING_LOCAL_PAYMENT", "PAYMENT_DETECTED", "PAYMEN
 export function operatorRoutes(c: Container): Router {
   const r = Router();
 
+  r.get("/operator/transfers", operatorAuth, (req, res) => {
+    const limit = Math.min(Number(req.query.limit ?? 100) || 100, 500);
+    const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0);
+    res.json(c.transfers.list(limit, offset));
+  });
+
+  r.get("/operator/transfers/:id", operatorAuth, (req, res) => {
+    try {
+      res.json(c.transfers.get(req.params.id));
+    } catch (e: unknown) {
+      res.status(404).json({ error: e instanceof Error ? e.message : "not found" });
+    }
+  });
+
   r.get("/operator/pending", (req, res) => {
     const limit = Math.min(Number(req.query.limit ?? 100) || 100, 200);
     res.json(c.transfers.list(limit, 0).filter((t) => PENDING.includes(t.status)));
