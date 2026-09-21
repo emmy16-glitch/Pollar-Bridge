@@ -15,23 +15,30 @@ export default function StreamingText({ text, speed = 18, className = "", doneLa
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setReduced(true);
-      setCount(text.length);
-      return;
-    }
-    setCount(0);
-    if (!text) return;
-    const id = window.setInterval(() => {
-      setCount((c) => {
-        if (c >= text.length) {
-          window.clearInterval(id);
-          return c;
-        }
-        return c + 1;
-      });
-    }, speed);
-    return () => window.clearInterval(id);
+    let interval: number | undefined;
+    const timeout = window.setTimeout(() => {
+      const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setReduced(prefersReduced);
+      if (prefersReduced) {
+        setCount(text.length);
+        return;
+      }
+      setCount(0);
+      if (!text) return;
+      interval = window.setInterval(() => {
+        setCount((c) => {
+          if (c >= text.length) {
+            if (interval !== undefined) window.clearInterval(interval);
+            return c;
+          }
+          return c + 1;
+        });
+      }, speed);
+    }, 0);
+    return () => {
+      window.clearTimeout(timeout);
+      if (interval !== undefined) window.clearInterval(interval);
+    };
   }, [text, speed]);
 
   const done = count >= text.length;
