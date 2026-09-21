@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const corridors = await backendFetch<BackendCorridor[]>("/corridors");
     const transfers = await backendFetch<BackendTransfer[]>("/operator/transfers?limit=200&offset=0");
     const ui = transfers.map((t) => backendTransferToPublicUi(t, corridors));
-    const filtered = !status || status === "ALL" ? ui : ui.filter((t) => t.status === status);
+    const filtered = !status || status === "ALL" ? ui : ui.filter((t) => String((t as { status?: unknown }).status ?? "") === status);
     return NextResponse.json({ success: true, transfers: filtered });
   } catch (error) {
     console.error("Transfers GET error:", error);
