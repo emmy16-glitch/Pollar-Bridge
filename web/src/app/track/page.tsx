@@ -9,7 +9,6 @@ import { ShieldCheck } from "lucide-react";
 
 interface RecentTransfer {
   id: string;
-  trackingToken: string;
   sourceCountry: string;
   destCountry: string;
   status: string;
@@ -57,12 +56,12 @@ export default function TrackSearchPage() {
             if (!query.trim()) return;
             router.push(`/track/${query.trim().toUpperCase()}`);
           }}
-          placeholder="Enter transfer ID e.g. PB-NG-20481"
+          placeholder="Enter transfer ID e.g. PB-1A2B3C4D"
           buttonLabel="Track Now"
           hints={recent.map((t) => t.id).slice(0, 3)}
           onHintClick={(hint) => {
             const match = recent.find((t) => t.id === hint);
-            router.push(`/track/${(match?.trackingToken ?? hint).toUpperCase()}`);
+            router.push(`/track/${(match?.id ?? hint).toUpperCase()}`);
           }}
         />
 
@@ -81,7 +80,7 @@ export default function TrackSearchPage() {
               <button
                 key={t.id}
                 type="button"
-                onClick={() => router.push(`/track/${t.trackingToken}`)}
+                onClick={() => router.push(`/track/${t.id}`)}
                 className="p-3 rounded-xl bg-[#0F162E] hover:bg-[#152042] border border-slate-800 text-left transition-colors flex items-center justify-between group"
               >
                 <div>
