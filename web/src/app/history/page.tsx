@@ -141,7 +141,7 @@ export default function HistoryPage() {
                     <tr key={t.id} className="hover:bg-slate-900/40 transition-colors">
                       <td className="py-3 font-bold text-white">
                         <Link
-                          href={`/track/${t.trackingToken}`}
+                          href={`/track/${t.id}`}
                           className="hover:text-violet-300 transition-colors flex items-center gap-1"
                         >
                           <span>{t.id}</span>
@@ -184,7 +184,7 @@ export default function HistoryPage() {
                       <td className="py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            href={`/track/${t.trackingToken}`}
+                            href={`/track/${t.id}`}
                             className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200"
                           >
                             Track
