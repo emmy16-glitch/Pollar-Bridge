@@ -18,16 +18,26 @@ const createSchema = z.object({
 });
 
 function publicTransfer(t: Transfer) {
+  // Backward-compatible public shape: old web builds still receive the fields
+  // they expect, but internal ids/tokens are replaced with the public reference.
   return {
-    reference: t.reference,
+    transferId: t.reference,
     corridorId: t.corridorId,
+    quoteId: t.reference,
+    paymentId: t.reference,
+    reference: t.reference,
+    shareToken: t.reference,
     sourceAmount: t.sourceAmount,
     totalRequired: t.totalRequired,
     amountDue: t.amountDue,
+    totalFees: t.totalFees,
     settlementAmount: t.settlementAmount,
     status: t.status,
+    history: t.history,
     timeline: t.history,
+    paymentExpiresAt: t.paymentExpiresAt,
     pollarTxHash: t.pollarTxHash ?? null,
+    pollarMode: t.pollarMode,
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,
   };
