@@ -83,7 +83,7 @@ const CORRIDORS = [
     rails: "Instant EFT, Ozow",
     speed: "10–25 min",
     href: "/send?country=ZA",
-    active: true,
+    active: false,
   },
 ];
 
@@ -242,8 +242,8 @@ export default function LandingPage() {
                 >
                   <option value="NG">🇳🇬 Nigeria (NGN)</option>
                   <option value="GH">🇬🇭 Ghana (GHS)</option>
-                  <option value="KE">🇰🇪 Kenya (KES)</option>
-                  <option value="ZA">🇿🇦 South Africa (ZAR)</option>
+                  <option value="KE">🇰🇪 Kenya (KES) — coming soon</option>
+                  <option value="ZA">🇿🇦 South Africa (ZAR) — coming soon</option>
                 </select>
               </div>
               <div>
@@ -499,9 +499,9 @@ export default function LandingPage() {
         {/* ---------- CTA ---------- */}
         <section className="text-center py-10 px-6 rounded-3xl bg-gradient-to-b from-[#131B38] to-[#0A0E1F] border border-violet-900/40 space-y-5 relative overflow-hidden animate-fade-up">
           <p className="text-[11px] font-mono text-slate-500">
-            Stellar testnet · 4 corridors · 4 rails online ·{" "}
-            <Link href="/track/PB-NG-20481" className="text-violet-300 hover:text-violet-200">
-              Inspect demo transfer PB-NG-20481
+            Stellar testnet · corridor availability is read from the backend ·{" "}
+            <Link href="/track" className="text-violet-300 hover:text-violet-200">
+              Open demo tracker
             </Link>
           </p>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
