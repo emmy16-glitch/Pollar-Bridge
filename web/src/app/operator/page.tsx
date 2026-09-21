@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import {
@@ -29,7 +29,7 @@ export default function OperatorOverviewPage() {
   const [corridorsList, setCorridorsList] = useState<any[]>([]);
   const [providersList, setProvidersList] = useState<any[]>([]);
 
-  const fetchOverview = async () => {
+  const fetchOverview = useCallback(async () => {
     setLoading(true);
     try {
       const [tRes, cRes, pRes] = await Promise.all([
@@ -49,11 +49,12 @@ export default function OperatorOverviewPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchOverview();
-  }, []);
+    const timeout = window.setTimeout(() => { void fetchOverview(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchOverview]);
 
   // Compute metrics specified in Section 5:
   // Pending local payments: 12 (or dynamic based on db)
