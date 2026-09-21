@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import { buildApp } from "../src/app.js";
 import { buildContainer } from "../src/container.js";
+import { setCorridorEnabled } from "../src/payments/corridors/corridorRegistry.js";
 
 // The x402 machine rail is HTTP-semantic (402 -> 201), so these tests drive the
 // real Express app on an ephemeral port instead of calling the service layer.
@@ -32,6 +33,7 @@ describe("x402 agent rail", () => {
       body: JSON.stringify({ corridorId: "NG-NGN-BANK-BO-USDC", sourceAmount: 100000 }),
     });
     expect(res.status).toBe(402);
+    expect(res.headers.get("x-request-id")).toMatch(/^[0-9a-f-]{36}$/i);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.code).toBe("PAYMENT_REQUIRED");
     expect(Number(body.priceUsdc)).toBeGreaterThan(0);
@@ -105,6 +107,34 @@ describe("x402 agent rail", () => {
     const st = await fetch(`${base}/agent/status/${memo}`);
     expect(st.status).toBe(200);
     expect(((await st.json()) as { redeemed: boolean }).redeemed).toBe(false);
+  });
+
+  it("does not burn a paid memo when transfer creation fails transiently", async () => {
+    const q = await fetch(`${base}/agent/quote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ corridorId: "NG-NGN-BANK-BO-USDC", sourceAmount: 30000 }),
+    });
+    const { memo } = (await q.json()) as { memo: string };
+
+    setCorridorEnabled("NG-NGN-BANK-BO-USDC", false);
+    try {
+      const failed = await fetch(`${base}/agent/transfers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memo, paymentHash: HEX }),
+      });
+      expect(failed.status).toBe(400);
+    } finally {
+      setCorridorEnabled("NG-NGN-BANK-BO-USDC", true);
+    }
+
+    const retry = await fetch(`${base}/agent/transfers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memo, paymentHash: HEX }),
+    });
+    expect(retry.status).toBe(201);
   });
 
   it("audits the machine action with actor=agent", async () => {
