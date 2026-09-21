@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch, type BackendCorridor, type BackendTransfer } from "@/lib/backend";
-import { backendTransferToPublicUi, backendTransferToUi } from "@/lib/adapters";
+import { backendTransferToPublicUi } from "@/lib/adapters";
 
 export const dynamic = "force-dynamic";
 
