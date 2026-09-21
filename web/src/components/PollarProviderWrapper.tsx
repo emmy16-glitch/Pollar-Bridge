@@ -35,7 +35,8 @@ class PollarMountBoundary extends React.Component<
 export default function PollarProviderWrapper({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true);
+    const timeout = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
   // SSR / first paint: render children without the SDK (no window, no storage).
   if (!mounted) return <>{children}</>;
