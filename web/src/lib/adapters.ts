@@ -219,8 +219,8 @@ export function backendTransferToUi(t: BackendTransfer, corridors: BackendCorrid
     status: mapStatus(t.status),
     backendStatus: t.status,
     paymentReference: t.reference,
-    recipientWalletAddress: t.pollarWallet ?? "GDQP2KPQGKIHYJGXNURG74YTI5FD5CJXNURG74YTI5FD5C",
-    recipientName: "Bolivia Remittance Recipient",
+    recipientWalletAddress: t.recipientWalletAddress ?? t.pollarWallet ?? "GDQP2KPQGKIHYJGXNURG74YTI5FD5CJXNURG74YTI5FD5C",
+    recipientName: t.recipientName ?? "Bolivia Remittance Recipient",
     paymentProofUrl: null as string | null,
     operatorNotes: t.history.length ? (t.history[t.history.length - 1].note ?? null) : null,
     pollarTxHash: t.pollarTxHash ?? null,
@@ -244,6 +244,30 @@ export function backendTransferToUi(t: BackendTransfer, corridors: BackendCorrid
     shareToken: t.shareToken,
     instructions: t.instructions ?? null,
     history: t.history,
+  };
+}
+
+/** Public UI shape: keep status/amounts usable while removing private routing and payment data. */
+export function backendTransferToPublicUi(t: BackendTransfer, corridors: BackendCorridor[]) {
+  const ui = backendTransferToUi(t, corridors) as Record<string, unknown>;
+  const privateFields = new Set([
+    "trackingToken",
+    "backendTransferId",
+    "backendPaymentId",
+    "backendCorridorId",
+    "shareToken",
+    "instructions",
+    "history",
+    "paymentProofUrl",
+    "operatorNotes",
+  ]);
+  const safe = Object.fromEntries(Object.entries(ui).filter(([key]) => !privateFields.has(key)));
+  return {
+    ...safe,
+    recipientName: "Bolivia Recipient",
+    recipientWalletAddress: "G…",
+    senderName: "African Local Sender",
+    senderEmail: "",
   };
 }
 
