@@ -41,6 +41,8 @@ export function operatorRoutes(c: Container): Router {
   r.post("/operator/payments/:paymentId/detected", ...guard, (req, res) => {
     try {
       const pid = req.params.paymentId;
+      const resolved = c.transfers.get(pid);
+      const actualPid = resolved.paymentId || pid;
       let simulated = false;
       for (const reg of c.registry.list()) {
         try {
@@ -49,7 +51,7 @@ export function operatorRoutes(c: Container): Router {
           };
           if (typeof adapter.simulateIncomingPayment === "function") {
             try {
-              adapter.simulateIncomingPayment(pid);
+              adapter.simulateIncomingPayment(actualPid);
               simulated = true;
             } catch {
               // not this adapter's payment — try next
@@ -59,7 +61,7 @@ export function operatorRoutes(c: Container): Router {
           // unresolvable — skip
         }
       }
-      const t = c.transfers.markDetected(pid);
+      const t = c.transfers.markDetected(actualPid);
       c.audit.record("operator", "payment.detected", pid, simulated ? "simulated" : "already-detected");
       res.json(t);
     } catch (e: unknown) {
