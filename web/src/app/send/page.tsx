@@ -207,7 +207,13 @@ function SendPageContent() {
         const res = await fetch(`/api/transfers/${transfer.id}`);
         const data = await res.json();
         if (data.success && data.transfer) {
-          setTransfer(data.transfer);
+          setTransfer((current) => current ? {
+            ...current,
+            ...data.transfer,
+            trackingToken: current.trackingToken,
+            recipientName: current.recipientName,
+            recipientWalletAddress: current.recipientWalletAddress,
+          } : data.transfer);
           if (data.transfer.status === "COMPLETED") {
             setCurrentStep("RECEIPT");
             confetti({
@@ -293,7 +299,13 @@ function SendPageContent() {
       });
       const data = await res.json();
       if (data.success && data.transfer) {
-        setTransfer(data.transfer);
+        setTransfer((current) => current ? {
+          ...current,
+          ...data.transfer,
+          trackingToken: current.trackingToken,
+          recipientName: current.recipientName,
+          recipientWalletAddress: current.recipientWalletAddress,
+        } : data.transfer);
         setCurrentStep("STATUS");
       } else {
         alert(data.error || "Failed to update payment status");
@@ -321,7 +333,13 @@ function SendPageContent() {
       });
       const data = await res.json();
       if (data.success && data.transfer) {
-        setTransfer(data.transfer);
+        setTransfer((current) => current ? {
+          ...current,
+          ...data.transfer,
+          trackingToken: current.trackingToken,
+          recipientName: current.recipientName,
+          recipientWalletAddress: current.recipientWalletAddress,
+        } : data.transfer);
         setCurrentStep("RECEIPT");
         confetti({
           particleCount: 120,
@@ -904,7 +922,15 @@ function SendPageContent() {
                   onClick={async () => {
                     const res = await fetch(`/api/transfers/${transfer.id}`);
                     const data = await res.json();
-                    if (data.success && data.transfer) setTransfer(data.transfer);
+                    if (data.success && data.transfer) {
+                      setTransfer((current) => current ? {
+                        ...current,
+                        ...data.transfer,
+                        trackingToken: current.trackingToken,
+                        recipientName: current.recipientName,
+                        recipientWalletAddress: current.recipientWalletAddress,
+                      } : data.transfer);
+                    }
                   }}
                   className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300 flex items-center gap-1.5"
                 >
@@ -912,7 +938,7 @@ function SendPageContent() {
                   <span>Refresh</span>
                 </button>
                 <a
-                  href={`/track/${transfer.trackingToken}`}
+                  href={`/track/${transfer.id}`}
                   target="_blank"
                   rel="noreferrer"
                   className="px-3 py-1.5 rounded-lg bg-violet-950/80 border border-violet-500/30 text-xs font-mono text-violet-300 hover:text-white flex items-center gap-1.5"
@@ -1026,7 +1052,7 @@ function SendPageContent() {
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(
-                    `${window.location.origin}/track/${transfer.trackingToken}`
+                    `${window.location.origin}/track/${transfer.id}`
                   );
                   alert("Tracking link copied to clipboard!");
                 }}
