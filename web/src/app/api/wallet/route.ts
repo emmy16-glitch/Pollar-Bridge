@@ -17,7 +17,7 @@ export async function GET() {
     const [health, corridors, transfers] = await Promise.all([
       backendFetch<{ ok: boolean; pollarEnv: string }>(`/health`).catch(() => ({ ok: true, pollarEnv: "testnet" })),
       backendFetch<BackendCorridor[]>("/corridors").catch(() => [] as BackendCorridor[]),
-      backendFetch<BackendTransfer[]>("/transfers?limit=10&offset=0").catch(() => [] as BackendTransfer[]),
+      backendFetch<BackendTransfer[]>("/operator/transfers?limit=10&offset=0").catch(() => [] as BackendTransfer[]),
     ]);
     const history = transfers.map((t) => backendTransferToUi(t, corridors));
     return NextResponse.json({
