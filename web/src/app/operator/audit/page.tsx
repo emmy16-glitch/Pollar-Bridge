@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import { FileText, RefreshCw, Filter, Search, ShieldCheck } from "lucide-react";
@@ -12,7 +12,7 @@ export default function AuditLogPage() {
   const [actorFilter, setActorFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const url = actorFilter === "ALL" ? "/api/audit" : `/api/audit?actor=${actorFilter}`;
@@ -26,11 +26,12 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [actorFilter]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [actorFilter]);
+    const timeout = window.setTimeout(() => { void fetchLogs(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchLogs]);
 
   const filtered = logs.filter((l) => {
     if (!searchQuery) return true;
