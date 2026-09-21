@@ -256,8 +256,14 @@ export function resolveBackendCorridor(
     (s ?? "").toLowerCase().replace(/^(demo_|sandbox_|live_)/, "").replace(/_/g, "-");
   if (opts.selectedRailId) {
     const want = norm(opts.selectedRailId);
-    const byProvider = corridors.find((c) => c.providerId.toLowerCase() === want || norm(c.providerId) === want);
-    if (byProvider) return byProvider;
+    const matches = corridors.filter(
+      (c) => c.providerId.toLowerCase() === want || norm(c.providerId) === want,
+    );
+    const enabledMatch = matches.find((c) => c.enabled);
+    if (enabledMatch) return enabledMatch;
+    if (matches.length) {
+      throw new Error(`Selected rail is not currently enabled: ${opts.selectedRailId}`);
+    }
   }
   if (opts.sourceCountry) {
     const name = opts.sourceCountry.toLowerCase();
@@ -265,8 +271,9 @@ export function resolveBackendCorridor(
     const code = codeEntry?.[0] ?? opts.sourceCountry.toUpperCase().slice(0, 2);
     const inCountry = corridors.filter((c) => c.sourceCountry.toUpperCase() === code && c.enabled);
     if (inCountry.length) return inCountry[0];
-    const anyInCountry = corridors.filter((c) => c.sourceCountry.toUpperCase() === code);
-    if (anyInCountry.length) return anyInCountry[0];
+    if (corridors.some((c) => c.sourceCountry.toUpperCase() === code)) {
+      throw new Error(`No enabled corridor is currently available for ${opts.sourceCountry}`);
+    }
   }
   const enabled = corridors.filter((c) => c.enabled);
   if (enabled.length) return enabled[0];
