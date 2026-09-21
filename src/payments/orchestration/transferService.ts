@@ -28,12 +28,24 @@ export class TransferService {
     private quotes: QuoteService,
   ) {}
 
-  createTransfer(corridorId: string, sourceAmount: number, senderName?: string, idempotencyKey?: string): Transfer {
+  createTransfer(
+    corridorId: string,
+    sourceAmount: number,
+    senderName?: string,
+    idempotencyKey?: string,
+    recipientName?: string,
+    recipientWalletAddress?: string,
+  ): Transfer {
     // No empty transactions: blank corridor/amount rejected, blank sender/key
     // normalized to absent (defaults apply) instead of stored as "".
     corridorId = assertNonBlank(corridorId, "corridorId");
     sourceAmount = assertFinitePositive(sourceAmount, "sourceAmount");
-    senderName = normalizeOptionalText(senderName);
+    const hasSenderName = Boolean(normalizeOptionalText(senderName));
+    recipientName = normalizeOptionalText(recipientName);
+    recipientWalletAddress = normalizeOptionalText(recipientWalletAddress);
+    if (recipientWalletAddress && !/^G[A-Z2-7]{55}$/.test(recipientWalletAddress)) {
+      throw new Error("recipientWalletAddress must be a 56-character Stellar G-address");
+    }
     idempotencyKey = normalizeOptionalText(idempotencyKey);
     // Safe retries: same key returns the original transfer, never a duplicate.
     if (idempotencyKey) {
@@ -52,6 +64,8 @@ export class TransferService {
       paymentId: "",
       reference,
       shareToken: uuid().replace(/-/g, "").slice(0, 12),
+      recipientName,
+      recipientWalletAddress,
       idempotencyKey,
       sourceAmount,
       totalRequired: quote.totalRequired,
@@ -59,7 +73,9 @@ export class TransferService {
       totalFees: quote.totalFees,
       settlementAmount: quote.settlementAmount,
       status: "QUOTE_CREATED",
-      history: [{ status: "QUOTE_CREATED", at: now(), note: `sender=${senderName ?? "anon"} corridor=${corridor.id}` }],
+      // Never put sender PII in timeline/audit-like fields: transfer history
+      // is surfaced by operational and demo APIs.
+      history: [{ status: "QUOTE_CREATED", at: now(), note: `sender=${hasSenderName ? "provided" : "anonymous"} corridor=${corridor.id}` }],
       createdAt: now(),
       updatedAt: now(),
     };
@@ -156,7 +172,7 @@ export class TransferService {
     if (t.status !== "PAYMENT_VERIFIED") throw new Error("USDC releases only after PAYMENT_VERIFIED");
     stamp(t, "USDC_SETTLEMENT_PENDING");
     try {
-      const wallet = await ensureWallet(t.transferId);
+      const wallet = t.recipientWalletAddress ?? await ensureWallet(t.transferId);
       // Deferred funding trigger: African verification approves the Pollar wallet.
       const fund = await fundDeferredWallet(wallet);
       stamp(t, "USDC_SETTLED_TO_POLLAR", `wallet=${wallet} fund=${fund.mode}`);
@@ -223,8 +239,11 @@ export class TransferService {
     return this.store.getTransfer(id);
   }
 
-  getByShareToken(token: string): Transfer {
-    const found = this.store.listTransfers(1000, 0).find((t) => t.shareToken === token);
+  getByShareToken(tokenOrReference: string): Transfer {
+    const needle = tokenOrReference.trim().toUpperCase();
+    const found = this.store.listTransfers(1000, 0).find(
+      (t) => t.shareToken.toUpperCase() === needle || t.reference.toUpperCase() === needle,
+    );
     if (!found) throw new Error("Unknown tracking link");
     return found;
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { History, Search, ArrowRight, ExternalLink, RefreshCw, Filter } from "lucide-react";
@@ -12,7 +12,7 @@ export default function HistoryPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchTransfers = async () => {
+  const fetchTransfers = useCallback(async () => {
     setLoading(true);
     try {
       const url = filterStatus === "ALL" ? "/api/transfers" : `/api/transfers?status=${filterStatus}`;
@@ -26,11 +26,12 @@ export default function HistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   useEffect(() => {
-    fetchTransfers();
-  }, [filterStatus]);
+    const timeout = window.setTimeout(() => { void fetchTransfers(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchTransfers]);
 
   const filtered = transfers.filter((t) => {
     if (!searchQuery) return true;
@@ -140,7 +141,7 @@ export default function HistoryPage() {
                     <tr key={t.id} className="hover:bg-slate-900/40 transition-colors">
                       <td className="py-3 font-bold text-white">
                         <Link
-                          href={`/track/${t.trackingToken}`}
+                          href={`/track/${t.id}`}
                           className="hover:text-violet-300 transition-colors flex items-center gap-1"
                         >
                           <span>{t.id}</span>
@@ -183,7 +184,7 @@ export default function HistoryPage() {
                       <td className="py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
-                            href={`/track/${t.trackingToken}`}
+                            href={`/track/${t.id}`}
                             className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200"
                           >
                             Track

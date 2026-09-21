@@ -133,7 +133,10 @@ class CardBoundary extends React.Component<{ children: React.ReactNode }, { fail
 }
 export default function PollarWalletCard() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(timeout);
+  }, []);
   if (!mounted) {
     return (<div className="rounded-3xl bg-[#0F162E] border border-slate-800 p-6 space-y-2">
       <p className="text-[11px] font-mono uppercase tracking-wider text-violet-400">Pollar wallet (real SDK)</p>

@@ -14,10 +14,10 @@ const hasKey = apiKey !== "";
 // The only usePollar() consumer (PollarWalletCard) has its own boundary +
 // SSR gate, so provider-less children stay safe.
 class PollarMountBoundary extends React.Component<
-  { children: React.ReactNode },
+  { children: React.ReactNode; fallback: React.ReactNode },
   { failed: boolean }
 > {
-  constructor(props: { children: React.ReactNode }) {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
     super(props);
     this.state = { failed: false };
   }
@@ -28,14 +28,15 @@ class PollarMountBoundary extends React.Component<
     console.warn("PollarProvider failed, running in demo fallback:", error);
   }
   render() {
-    return this.props.children;
+    return this.state.failed ? this.props.fallback : this.props.children;
   }
 }
 
 export default function PollarProviderWrapper({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true);
+    const timeout = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
   // SSR / first paint: render children without the SDK (no window, no storage).
   if (!mounted) return <>{children}</>;
@@ -43,7 +44,7 @@ export default function PollarProviderWrapper({ children }: { children: React.Re
   // key fires GET /applications/config → 401 in the console on every page.
   if (!hasKey) return <>{children}</>;
   return (
-    <PollarMountBoundary>
+    <PollarMountBoundary fallback={<>{children}</>}>
       <PollarProvider client={{ apiKey }}>{children}</PollarProvider>
     </PollarMountBoundary>
   );

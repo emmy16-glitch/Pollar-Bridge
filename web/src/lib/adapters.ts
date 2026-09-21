@@ -219,8 +219,8 @@ export function backendTransferToUi(t: BackendTransfer, corridors: BackendCorrid
     status: mapStatus(t.status),
     backendStatus: t.status,
     paymentReference: t.reference,
-    recipientWalletAddress: t.pollarWallet ?? "GDQP2KPQGKIHYJGXNURG74YTI5FD5CJXNURG74YTI5FD5C",
-    recipientName: "Bolivia Remittance Recipient",
+    recipientWalletAddress: t.recipientWalletAddress ?? t.pollarWallet ?? "GDQP2KPQGKIHYJGXNURG74YTI5FD5CJXNURG74YTI5FD5C",
+    recipientName: t.recipientName ?? "Bolivia Remittance Recipient",
     paymentProofUrl: null as string | null,
     operatorNotes: t.history.length ? (t.history[t.history.length - 1].note ?? null) : null,
     pollarTxHash: t.pollarTxHash ?? null,
@@ -247,6 +247,30 @@ export function backendTransferToUi(t: BackendTransfer, corridors: BackendCorrid
   };
 }
 
+/** Public UI shape: keep status/amounts usable while removing private routing and payment data. */
+export function backendTransferToPublicUi(t: BackendTransfer, corridors: BackendCorridor[]) {
+  const ui = backendTransferToUi(t, corridors) as Record<string, unknown>;
+  const privateFields = new Set([
+    "trackingToken",
+    "backendTransferId",
+    "backendPaymentId",
+    "backendCorridorId",
+    "shareToken",
+    "instructions",
+    "history",
+    "paymentProofUrl",
+    "operatorNotes",
+  ]);
+  const safe = Object.fromEntries(Object.entries(ui).filter(([key]) => !privateFields.has(key)));
+  return {
+    ...safe,
+    recipientName: "Bolivia Recipient",
+    recipientWalletAddress: "G…",
+    senderName: "African Local Sender",
+    senderEmail: "",
+  };
+}
+
 // UI provider ids (demo_ng_bank, sandbox_gh_momo, ...) -> backend corridor.
 export function resolveBackendCorridor(
   corridors: BackendCorridor[],
@@ -256,8 +280,14 @@ export function resolveBackendCorridor(
     (s ?? "").toLowerCase().replace(/^(demo_|sandbox_|live_)/, "").replace(/_/g, "-");
   if (opts.selectedRailId) {
     const want = norm(opts.selectedRailId);
-    const byProvider = corridors.find((c) => c.providerId.toLowerCase() === want || norm(c.providerId) === want);
-    if (byProvider) return byProvider;
+    const matches = corridors.filter(
+      (c) => c.providerId.toLowerCase() === want || norm(c.providerId) === want,
+    );
+    const enabledMatch = matches.find((c) => c.enabled);
+    if (enabledMatch) return enabledMatch;
+    if (matches.length) {
+      throw new Error(`Selected rail is not currently enabled: ${opts.selectedRailId}`);
+    }
   }
   if (opts.sourceCountry) {
     const name = opts.sourceCountry.toLowerCase();
@@ -265,8 +295,9 @@ export function resolveBackendCorridor(
     const code = codeEntry?.[0] ?? opts.sourceCountry.toUpperCase().slice(0, 2);
     const inCountry = corridors.filter((c) => c.sourceCountry.toUpperCase() === code && c.enabled);
     if (inCountry.length) return inCountry[0];
-    const anyInCountry = corridors.filter((c) => c.sourceCountry.toUpperCase() === code);
-    if (anyInCountry.length) return anyInCountry[0];
+    if (corridors.some((c) => c.sourceCountry.toUpperCase() === code)) {
+      throw new Error(`No enabled corridor is currently available for ${opts.sourceCountry}`);
+    }
   }
   const enabled = corridors.filter((c) => c.enabled);
   if (enabled.length) return enabled[0];

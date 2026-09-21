@@ -107,23 +107,26 @@ function SendPageContent() {
 
   // Handle URL query presets
   useEffect(() => {
-    const qCountry = searchParams.get("country");
-    const qAmount = searchParams.get("amount");
-    if (qCountry === "GH") {
-      setSourceCountry("Ghana");
-      setSourceCurrency("GHS");
-      setSourceAmount(qAmount || "1500");
-    } else if (qCountry === "KE") {
-      setSourceCountry("Kenya");
-      setSourceCurrency("KES");
-      setSourceAmount(qAmount || "10000");
-    } else if (qCountry === "ZA") {
-      setSourceCountry("South Africa");
-      setSourceCurrency("ZAR");
-      setSourceAmount(qAmount || "3000");
-    } else if (qAmount) {
-      setSourceAmount(qAmount);
-    }
+    const timeout = window.setTimeout(() => {
+      const qCountry = searchParams.get("country");
+      const qAmount = searchParams.get("amount");
+      if (qCountry === "GH") {
+        setSourceCountry("Ghana");
+        setSourceCurrency("GHS");
+        setSourceAmount(qAmount || "1500");
+      } else if (qCountry === "KE") {
+        setSourceCountry("Kenya");
+        setSourceCurrency("KES");
+        setSourceAmount(qAmount || "10000");
+      } else if (qCountry === "ZA") {
+        setSourceCountry("South Africa");
+        setSourceCurrency("ZAR");
+        setSourceAmount(qAmount || "3000");
+      } else if (qAmount) {
+        setSourceAmount(qAmount);
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [searchParams]);
 
   // Load corridors and providers
@@ -148,6 +151,7 @@ function SendPageContent() {
   // Update currency when country changes
   const handleCountryChange = (cName: string) => {
     setSourceCountry(cName);
+    setSelectedRail(null);
     if (cName === "Nigeria") {
       setSourceCurrency("NGN");
       setSourceAmount("100000");
@@ -168,7 +172,10 @@ function SendPageContent() {
     (c) => c.fromCountry.toLowerCase() === sourceCountry.toLowerCase()
   );
   const availableRails = providers.filter(
-    (p) => !currentCorridor || p.corridorId === currentCorridor.id
+    (p) =>
+      (!currentCorridor || p.corridorId === currentCorridor.id) &&
+      p.status !== "Coming soon" &&
+      p.status !== "Locked"
   );
 
   // Origin-country dropdown options (live corridors, static fallback)
@@ -200,7 +207,13 @@ function SendPageContent() {
         const res = await fetch(`/api/transfers/${transfer.id}`);
         const data = await res.json();
         if (data.success && data.transfer) {
-          setTransfer(data.transfer);
+          setTransfer((current) => current ? {
+            ...current,
+            ...data.transfer,
+            trackingToken: current.trackingToken,
+            recipientName: current.recipientName,
+            recipientWalletAddress: current.recipientWalletAddress,
+          } : data.transfer);
           if (data.transfer.status === "COMPLETED") {
             setCurrentStep("RECEIPT");
             confetti({
@@ -286,7 +299,13 @@ function SendPageContent() {
       });
       const data = await res.json();
       if (data.success && data.transfer) {
-        setTransfer(data.transfer);
+        setTransfer((current) => current ? {
+          ...current,
+          ...data.transfer,
+          trackingToken: current.trackingToken,
+          recipientName: current.recipientName,
+          recipientWalletAddress: current.recipientWalletAddress,
+        } : data.transfer);
         setCurrentStep("STATUS");
       } else {
         alert(data.error || "Failed to update payment status");
@@ -314,7 +333,13 @@ function SendPageContent() {
       });
       const data = await res.json();
       if (data.success && data.transfer) {
-        setTransfer(data.transfer);
+        setTransfer((current) => current ? {
+          ...current,
+          ...data.transfer,
+          trackingToken: current.trackingToken,
+          recipientName: current.recipientName,
+          recipientWalletAddress: current.recipientWalletAddress,
+        } : data.transfer);
         setCurrentStep("RECEIPT");
         confetti({
           particleCount: 120,
@@ -546,6 +571,11 @@ function SendPageContent() {
 
             {/* Rails Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableRails.length === 0 && (
+                <div className="md:col-span-2 p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-sm text-amber-200">
+                  No payment rail is currently enabled for {sourceCountry}. Choose Nigeria or Ghana for the live sandbox flow.
+                </div>
+              )}
               {availableRails.map((rail) => {
                 const isSelected = selectedRail?.id === rail.id;
                 const railFixed = parseFloat(rail.fixedFee || "0");
@@ -892,7 +922,15 @@ function SendPageContent() {
                   onClick={async () => {
                     const res = await fetch(`/api/transfers/${transfer.id}`);
                     const data = await res.json();
-                    if (data.success && data.transfer) setTransfer(data.transfer);
+                    if (data.success && data.transfer) {
+                      setTransfer((current) => current ? {
+                        ...current,
+                        ...data.transfer,
+                        trackingToken: current.trackingToken,
+                        recipientName: current.recipientName,
+                        recipientWalletAddress: current.recipientWalletAddress,
+                      } : data.transfer);
+                    }
                   }}
                   className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-300 flex items-center gap-1.5"
                 >
@@ -900,7 +938,7 @@ function SendPageContent() {
                   <span>Refresh</span>
                 </button>
                 <a
-                  href={`/track/${transfer.trackingToken}`}
+                  href={`/track/${transfer.id}`}
                   target="_blank"
                   rel="noreferrer"
                   className="px-3 py-1.5 rounded-lg bg-violet-950/80 border border-violet-500/30 text-xs font-mono text-violet-300 hover:text-white flex items-center gap-1.5"
@@ -1014,7 +1052,7 @@ function SendPageContent() {
                 type="button"
                 onClick={() => {
                   navigator.clipboard.writeText(
-                    `${window.location.origin}/track/${transfer.trackingToken}`
+                    `${window.location.origin}/track/${transfer.id}`
                   );
                   alert("Tracking link copied to clipboard!");
                 }}

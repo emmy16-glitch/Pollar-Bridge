@@ -65,6 +65,8 @@ export interface BackendTransfer {
   paymentId: string;
   reference: string;
   shareToken: string;
+  recipientName?: string;
+  recipientWalletAddress?: string;
   sourceAmount: number;
   totalRequired: number;
   amountDue?: number;

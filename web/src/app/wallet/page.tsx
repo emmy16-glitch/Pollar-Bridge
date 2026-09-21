@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import {
   Wallet,
@@ -32,7 +32,7 @@ export default function WalletPage() {
   const [sendMemo, setSendMemo] = useState("PollarBridge settlement demo");
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchWallet = async () => {
+  const fetchWallet = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/wallet");
@@ -46,11 +46,12 @@ export default function WalletPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchWallet();
-  }, []);
+    const timeout = window.setTimeout(() => { void fetchWallet(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchWallet]);
 
   const handleCopyAddress = () => {
     if (!wallet?.address) return;

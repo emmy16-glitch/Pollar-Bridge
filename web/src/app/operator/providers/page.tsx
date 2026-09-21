@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import {
@@ -22,7 +22,7 @@ export default function ProviderHealthPage() {
   const [pingResults, setPingResults] = useState<Record<string, { latency: number; time: string }>>({});
   const [pingingId, setPingingId] = useState<string | null>(null);
 
-  const fetchProviders = async () => {
+  const fetchProviders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/providers");
@@ -35,11 +35,12 @@ export default function ProviderHealthPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchProviders();
-  }, []);
+    const timeout = window.setTimeout(() => { void fetchProviders(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchProviders]);
 
   const handlePing = async (providerId: string) => {
     setPingingId(providerId);

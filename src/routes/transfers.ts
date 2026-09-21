@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import type { Container } from "../container.js";
+import type { Transfer } from "../types.js";
 import { getCorridor } from "../payments/corridors/corridorRegistry.js";
 import { reconcile } from "../payments/orchestration/reconciliation.js";
 import { operatorAuth, rateLimit } from "../security.js";
@@ -11,8 +12,26 @@ const createSchema = z.object({
   corridorId: z.string().min(3),
   sourceAmount: z.number().finite().positive(),
   senderName: z.string().max(120).optional(),
+  recipientName: z.string().max(120).optional(),
+  recipientWalletAddress: z.string().max(120).optional(),
   idempotencyKey: z.string().max(120).optional(),
 });
+
+function publicTransfer(t: Transfer) {
+  return {
+    reference: t.reference,
+    corridorId: t.corridorId,
+    sourceAmount: t.sourceAmount,
+    totalRequired: t.totalRequired,
+    amountDue: t.amountDue,
+    settlementAmount: t.settlementAmount,
+    status: t.status,
+    timeline: t.history,
+    pollarTxHash: t.pollarTxHash ?? null,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+  };
+}
 
 export function transferRoutes(c: Container): Router {
   const r = Router();
@@ -23,7 +42,14 @@ export function transferRoutes(c: Container): Router {
       const body = createSchema.parse(req.body);
       const key =
         (req.header("Idempotency-Key") ?? body.idempotencyKey ?? "").trim() || undefined;
-      const t = c.transfers.createTransfer(body.corridorId, body.sourceAmount, body.senderName, key);
+      const t = c.transfers.createTransfer(
+        body.corridorId,
+        body.sourceAmount,
+        body.senderName,
+        key,
+        body.recipientName,
+        body.recipientWalletAddress,
+      );
       await c.transfers.issuePaymentInstructions(t.transferId);
       c.audit.record("api", "transfer.create", t.transferId, t.reference);
       res.status(key ? 201 : 201).json(c.transfers.get(t.transferId));
@@ -35,11 +61,11 @@ export function transferRoutes(c: Container): Router {
   r.get("/transfers", (req, res) => {
     const limit = Math.min(Number(req.query.limit ?? 50) || 50, 200);
     const offset = Math.max(Number(req.query.offset ?? 0) || 0, 0);
-    res.json(c.transfers.list(limit, offset));
+    res.json(c.transfers.list(limit, offset).map(publicTransfer));
   });
   r.get("/transfers/:id", (req, res) => {
     try {
-      res.json(c.transfers.get(req.params.id));
+      res.json(publicTransfer(c.transfers.get(req.params.id)));
     } catch (e: unknown) {
       res.status(404).json({ error: e instanceof Error ? e.message : "not found" });
     }
@@ -56,7 +82,7 @@ export function transferRoutes(c: Container): Router {
         Connection: "keep-alive",
       });
       const send = (data: unknown) => res.write(`data: ${JSON.stringify(data)}\n\n`);
-      send(t);
+      send(publicTransfer(t));
       if (TERMINAL_STATUSES.includes(t.status)) {
         res.end();
         return;
@@ -70,7 +96,7 @@ export function transferRoutes(c: Container): Router {
       const onUpdate = () => {
         try {
           const cur = c.transfers.get(req.params.id);
-          send(cur);
+          send(publicTransfer(cur));
           if (TERMINAL_STATUSES.includes(cur.status)) {
             transferEvents.removeListener(channel, onUpdate);
             res.end();

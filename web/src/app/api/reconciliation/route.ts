@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const corridors = await backendFetch<BackendCorridor[]>("/corridors");
-    const transfers = await backendFetch<BackendTransfer[]>("/transfers?limit=200&offset=0");
+    const transfers = await backendFetch<BackendTransfer[]>("/operator/transfers?limit=200&offset=0");
     const ui = transfers.map((t) => backendTransferToUi(t, corridors));
     const records = ui.map((t) => {
       const expected = parseFloat(t.totalSourceAmount);
@@ -36,7 +36,6 @@ export async function GET() {
       }
       return {
         id: t.id,
-        trackingToken: t.trackingToken,
         sourceCountry: t.sourceCountry,
         sourceCurrency: t.sourceCurrency,
         destCountry: t.destCountry,
@@ -82,7 +81,7 @@ export async function POST() {
   try {
     // Backend reconciliation is per-transfer and read-only; the audit pass
     // just re-verifies every transfer against live adapter actuals.
-    const transfers = await backendFetch<BackendTransfer[]>("/transfers?limit=200&offset=0");
+    const transfers = await backendFetch<BackendTransfer[]>("/operator/transfers?limit=200&offset=0");
     let checked = 0;
     for (const t of transfers) {
       try {

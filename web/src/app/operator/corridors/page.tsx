@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import OperatorPageHeader from "@/components/ui/OperatorPageHeader";
 import {
@@ -28,7 +28,7 @@ export default function CorridorsPage() {
   const [editMin, setEditMin] = useState("");
   const [editMax, setEditMax] = useState("");
 
-  const fetchCorridors = async () => {
+  const fetchCorridors = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/corridors");
@@ -41,11 +41,12 @@ export default function CorridorsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchCorridors();
-  }, []);
+    const timeout = window.setTimeout(() => { void fetchCorridors(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchCorridors]);
 
   const handleOpenEdit = (c: any) => {
     setEditingCorridor(c);

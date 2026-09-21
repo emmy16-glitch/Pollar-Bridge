@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
@@ -27,7 +27,7 @@ export default function TransferStatusDirectPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchTransfer = async () => {
+  const fetchTransfer = useCallback(async () => {
     if (!id) return;
     try {
       const res = await fetch(`/api/transfers/${id}`);
@@ -40,13 +40,16 @@ export default function TransferStatusDirectPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    fetchTransfer();
-    const interval = setInterval(fetchTransfer, 4000);
-    return () => clearInterval(interval);
-  }, [id]);
+    const timeout = window.setTimeout(() => { void fetchTransfer(); }, 0);
+    const interval = window.setInterval(() => { void fetchTransfer(); }, 4000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
+  }, [fetchTransfer]);
 
   const handleSimulateApproval = async () => {
     if (!transfer) return;
@@ -193,7 +196,7 @@ export default function TransferStatusDirectPage() {
 
             <div className="flex items-center gap-2">
               <Link
-                href={`/track/${transfer.trackingToken}`}
+                href={`/track/${transfer.id}`}
                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5"
               >
                 <span>Public tracking link</span>

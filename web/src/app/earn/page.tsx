@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import SectionHeading from "@/components/ui/SectionHeading";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -16,7 +16,7 @@ export default function EarnPage() {
   const [data, setData] = useState<EarnResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const load = async (p: "blend" | "defindex") => {
+  const load = useCallback(async (p: "blend" | "defindex") => {
     setLoading(true); setErr(null);
     try {
       const r = await fetch(`/api/earn/opportunities?provider=${p}`, { cache: "no-store" });
@@ -24,8 +24,11 @@ export default function EarnPage() {
       setData(j);
     } catch (e) { setErr(e instanceof Error ? e.message : "fetch failed"); }
     finally { setLoading(false); }
-  };
-  useEffect(() => { load(provider); }, [provider]);
+  }, []);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void load(provider); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [provider, load]);
   const opps = data?.opportunities ?? [];
   const real = data?.mode === "real";
   return (

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import cors from "cors";
 import express from "express";
 import type { Container } from "./container.js";
@@ -38,7 +39,9 @@ export function buildApp(c: Container): express.Express {
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
     res.setHeader("Cache-Control", "no-store");
-    (req as unknown as { id: string }).id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const requestId = randomUUID();
+    (req as unknown as { id: string }).id = requestId;
+    res.setHeader("X-Request-Id", requestId);
     next();
   });
 

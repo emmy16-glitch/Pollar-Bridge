@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import confetti from "canvas-confetti";
@@ -38,7 +38,7 @@ function OperatorQueueContent() {
   const [operatorNotes, setOperatorNotes] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
 
-  const fetchTransfers = async () => {
+  const fetchTransfers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/transfers");
@@ -47,9 +47,9 @@ function OperatorQueueContent() {
         setTransfers(data.transfers || []);
         // Check if pre-selected via query ref
         const qRef = searchParams.get("ref");
-        if (qRef && !selectedTransfer) {
+        if (qRef) {
           const match = data.transfers.find((t: any) => t.id === qRef);
-          if (match) setSelectedTransfer(match);
+          if (match) setSelectedTransfer((current: any | null) => current ?? match);
         }
       }
     } catch (e) {
@@ -57,11 +57,12 @@ function OperatorQueueContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchParams]);
 
   useEffect(() => {
-    fetchTransfers();
-  }, []);
+    const timeout = window.setTimeout(() => { void fetchTransfers(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchTransfers]);
 
   const handleVerify = async () => {
     if (!selectedTransfer) return;

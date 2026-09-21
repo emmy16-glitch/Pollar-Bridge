@@ -37,7 +37,8 @@ export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState<number>(1);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [corridorStats, setCorridorStats] = useState<{ active: number; total: number } | null>(null);
   const [quickSearch, setQuickSearch] = useState("");
   const [walletBalance, setWalletBalance] = useState("1,850.45");
 
@@ -45,10 +46,20 @@ export default function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch("/api/transfers?status=PAYMENT_DETECTED");
-        const data = await res.json();
+        const [transferRes, corridorRes] = await Promise.all([
+          fetch("/api/transfers?status=PAYMENT_DETECTED"),
+          fetch("/api/corridors"),
+        ]);
+        const data = await transferRes.json();
+        const corridorData = await corridorRes.json();
         if (data.success && Array.isArray(data.transfers)) {
           setPendingCount(data.transfers.length);
+        }
+        if (corridorData.success && Array.isArray(corridorData.corridors)) {
+          setCorridorStats({
+            active: corridorData.corridors.filter((c: { status?: string }) => c.status === "ACTIVE").length,
+            total: corridorData.corridors.length,
+          });
         }
       } catch {
         // keep fallback
@@ -328,7 +339,9 @@ export default function AppShell({ children }: AppShellProps) {
               <div className="p-2.5 rounded-lg bg-slate-900/70 border border-slate-800 text-xs">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-slate-400">Sandbox Rails</span>
-                  <span className="text-emerald-400 font-mono text-[10px]">4 / 4 Active</span>
+                  <span className="text-emerald-400 font-mono text-[10px]">
+                    {corridorStats ? `${corridorStats.active} / ${corridorStats.total} Active` : "Checking…"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Pollar Testnet</span>
@@ -369,7 +382,7 @@ export default function AppShell({ children }: AppShellProps) {
             <Search className="w-4 h-4 text-slate-500 absolute left-3.5 pointer-events-none" />
             <input
               type="text"
-              placeholder="Track transfer ID (e.g. PB-NG-20481)..."
+              placeholder="Track transfer ID (e.g. PB-1A2B3C4D)..."
               value={quickSearch}
               onChange={(e) => setQuickSearch(e.target.value)}
               className="w-full bg-[#0D1224] border border-violet-900/30 rounded-xl pl-9 pr-24 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-mono"
@@ -386,12 +399,12 @@ export default function AppShell({ children }: AppShellProps) {
           <div className="flex items-center gap-2 lg:gap-3">
             {/* Quick Demo Transfer Pill */}
             <Link
-              href="/track/PB-NG-20481"
+              href="/track"
               className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 hover:border-violet-500/40 text-[11px] text-slate-300 hover:text-white transition-all font-mono"
-              title="Inspect demo transfer PB-NG-20481"
+              title="Open the demo transfer tracker"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-              Demo: <span className="text-violet-300">PB-NG-20481</span>
+              <span className="text-violet-300">Demo tracker</span>
             </Link>
 
             {/* Wallet Quick Balance */}
@@ -433,7 +446,7 @@ export default function AppShell({ children }: AppShellProps) {
               <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Track transfer ID (e.g. PB-NG-20481)..."
+                placeholder="Track transfer ID (e.g. PB-1A2B3C4D)..."
                 value={quickSearch}
                 onChange={(e) => setQuickSearch(e.target.value)}
                 className="w-full bg-[#0D1224] border border-violet-900/30 rounded-xl pl-9 pr-20 py-2 text-xs text-slate-200 placeholder-slate-500 font-mono"

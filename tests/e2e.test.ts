@@ -7,6 +7,7 @@ describe("end-to-end sandbox transfer", () => {
     const c = buildContainer();
     const t0 = c.transfers.createTransfer("NG-NGN-BANK-BO-USDC", 100000, "Ada");
     expect(t0.status).toBe("QUOTE_CREATED");
+    expect(JSON.stringify(t0.history)).not.toContain("Ada");
 
     const t1 = await c.transfers.issuePaymentInstructions(t0.transferId);
     expect(t1.status).toBe("AWAITING_LOCAL_PAYMENT");
