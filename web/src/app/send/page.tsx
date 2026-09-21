@@ -148,6 +148,7 @@ function SendPageContent() {
   // Update currency when country changes
   const handleCountryChange = (cName: string) => {
     setSourceCountry(cName);
+    setSelectedRail(null);
     if (cName === "Nigeria") {
       setSourceCurrency("NGN");
       setSourceAmount("100000");
@@ -168,7 +169,10 @@ function SendPageContent() {
     (c) => c.fromCountry.toLowerCase() === sourceCountry.toLowerCase()
   );
   const availableRails = providers.filter(
-    (p) => !currentCorridor || p.corridorId === currentCorridor.id
+    (p) =>
+      (!currentCorridor || p.corridorId === currentCorridor.id) &&
+      p.status !== "Coming soon" &&
+      p.status !== "Locked"
   );
 
   // Origin-country dropdown options (live corridors, static fallback)
@@ -546,6 +550,11 @@ function SendPageContent() {
 
             {/* Rails Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableRails.length === 0 && (
+                <div className="md:col-span-2 p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-sm text-amber-200">
+                  No payment rail is currently enabled for {sourceCountry}. Choose Nigeria or Ghana for the live sandbox flow.
+                </div>
+              )}
               {availableRails.map((rail) => {
                 const isSelected = selectedRail?.id === rail.id;
                 const railFixed = parseFloat(rail.fixedFee || "0");
