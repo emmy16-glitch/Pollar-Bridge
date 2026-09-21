@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch, type BackendCorridor, type BackendTransfer } from "@/lib/backend";
-import { backendTransferToUi, resolveBackendCorridor } from "@/lib/adapters";
+import { backendTransferToPublicUi, backendTransferToUi, resolveBackendCorridor } from "@/lib/adapters";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +9,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const corridors = await backendFetch<BackendCorridor[]>("/corridors");
-    const transfers = await backendFetch<BackendTransfer[]>("/transfers?limit=200&offset=0");
-    const ui = transfers.map((t) => backendTransferToUi(t, corridors));
+    const transfers = await backendFetch<BackendTransfer[]>("/operator/transfers?limit=200&offset=0");
+    const ui = transfers.map((t) => backendTransferToPublicUi(t, corridors));
     const filtered = !status || status === "ALL" ? ui : ui.filter((t) => t.status === status);
     return NextResponse.json({ success: true, transfers: filtered });
   } catch (error) {
@@ -30,8 +30,10 @@ export async function POST(request: Request) {
       sourceAmount?: string | number;
       selectedRailId?: string;
       senderName?: string;
+      recipientName?: string;
+      recipientWalletAddress?: string;
     };
-    const { sourceCountry, sourceCurrency, sourceAmount, selectedRailId, senderName } = body;
+    const { sourceCountry, sourceCurrency, sourceAmount, selectedRailId, senderName, recipientName, recipientWalletAddress } = body;
     if (!sourceCountry || !sourceCurrency || !sourceAmount || !selectedRailId) {
       return NextResponse.json(
         { success: false, error: "Missing required fields for quote" },
@@ -51,9 +53,11 @@ export async function POST(request: Request) {
         corridorId: corridor.id,
         sourceAmount: numAmount,
         senderName: senderName ?? "African Local Sender",
+        recipientName,
+        recipientWalletAddress,
       }),
     });
-    const full = await backendFetch<BackendTransfer>(`/transfers/${created.transferId}`);
+    const full = await backendFetch<BackendTransfer>(`/operator/transfers/${created.transferId}`);
     const refreshedCorridors = await backendFetch<BackendCorridor[]>("/corridors");
     return NextResponse.json({ success: true, transfer: backendTransferToUi(full, refreshedCorridors) });
   } catch (error) {
