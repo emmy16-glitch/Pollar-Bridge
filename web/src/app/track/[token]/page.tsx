@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
@@ -28,7 +28,7 @@ export default function PublicTrackPage() {
   const [transfer, setTransfer] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTrackData = async () => {
+  const fetchTrackData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
@@ -45,11 +45,12 @@ export default function PublicTrackPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    fetchTrackData();
-  }, [token]);
+    const timeout = window.setTimeout(() => { void fetchTrackData(); }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [fetchTrackData]);
 
   if (loading) {
     return (
