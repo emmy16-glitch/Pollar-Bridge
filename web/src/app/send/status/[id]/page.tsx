@@ -196,7 +196,7 @@ export default function TransferStatusDirectPage() {
 
             <div className="flex items-center gap-2">
               <Link
-                href={`/track/${transfer.trackingToken}`}
+                href={`/track/${transfer.id}`}
                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-mono text-slate-200 flex items-center gap-1.5"
               >
                 <span>Public tracking link</span>
