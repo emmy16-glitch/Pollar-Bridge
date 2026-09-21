@@ -28,6 +28,32 @@ export class TransferService {
     private quotes: QuoteService,
   ) {}
 
+  private resolveTransfer(idOrReference: string): Transfer {
+    try {
+      return this.store.getTransfer(idOrReference);
+    } catch {
+      const needle = idOrReference.trim().toUpperCase();
+      const found = this.store.listTransfers(1000, 0).find(
+        (t) =>
+          t.reference.toUpperCase() === needle ||
+          t.shareToken.toUpperCase() === needle ||
+          t.paymentId.toUpperCase() === needle,
+      );
+      if (!found) throw new Error(`Unknown transfer: ${idOrReference}`);
+      return found;
+    }
+  }
+
+  private resolvePayment(paymentIdOrReference: string): Transfer {
+    try {
+      return this.store.getByPayment(paymentIdOrReference);
+    } catch {
+      const t = this.resolveTransfer(paymentIdOrReference);
+      if (!t.paymentId) throw new Error("Transfer has no local payment yet");
+      return t;
+    }
+  }
+
   createTransfer(
     corridorId: string,
     sourceAmount: number,
@@ -85,7 +111,7 @@ export class TransferService {
   }
 
   async issuePaymentInstructions(transferId: string): Promise<Transfer> {
-    const t = this.store.getTransfer(transferId);
+    const t = this.resolveTransfer(transferId);
     // Idempotent: re-issuing returns the same instructions.
     if (t.paymentId && t.instructions) return t;
     const quote = this.store.getQuote(t.quoteId);
@@ -127,7 +153,7 @@ export class TransferService {
   }
 
   markDetected(paymentId: string): Transfer {
-    const t = this.store.getByPayment(paymentId);
+    const t = this.resolvePayment(paymentId);
     if (this.expireIfStale(t)) throw new Error("Payment expired — create a new transfer for a fresh quote");
     // Idempotent for operator double-clicks / webhook retries.
     if (t.status === "PAYMENT_DETECTED" || t.status === "PAYMENT_UNDER_REVIEW") return t;
@@ -141,12 +167,12 @@ export class TransferService {
   }
 
   async verifyPayment(paymentId: string, method: "operator" | "auto" = "operator"): Promise<Transfer> {
-    const t = this.store.getByPayment(paymentId);
+    const t = this.resolvePayment(paymentId);
     if (this.expireIfStale(t)) throw new Error("Payment expired — create a new transfer for a fresh quote");
     if (t.status === "PAYMENT_VERIFIED") return t; // idempotent retry
     const corridor = getCorridor(t.corridorId);
     const adapter = this.registry.resolve(corridor.sourceCountry, corridor.sourceRail, corridor.mode);
-    const res = await adapter.verifyPayment(paymentId);
+    const res = await adapter.verifyPayment(t.paymentId);
     if (!res.verified) {
       stamp(t, "PAYMENT_REJECTED", res.reason ?? "verification failed");
       this.store.saveTransfer(t);
@@ -166,7 +192,7 @@ export class TransferService {
   }
 
   async settleToPollar(transferId: string): Promise<Transfer> {
-    const t = this.store.getTransfer(transferId);
+    const t = this.resolveTransfer(transferId);
     if (this.expireIfStale(t)) throw new Error("Payment expired — create a new transfer for a fresh quote");
     if (t.status === "COMPLETED") return t; // idempotent settle retry
     if (t.status !== "PAYMENT_VERIFIED") throw new Error("USDC releases only after PAYMENT_VERIFIED");
@@ -204,7 +230,7 @@ export class TransferService {
   }
 
   rejectPayment(paymentId: string, reason: string): Transfer {
-    const t = this.store.getByPayment(paymentId);
+    const t = this.resolvePayment(paymentId);
     stamp(t, "PAYMENT_REJECTED", reason);
     this.store.saveTransfer(t);
     return t;
@@ -214,11 +240,11 @@ export class TransferService {
   // Falls back to a clearly-labeled manual refund when the adapter can't auto-refund
   // (e.g. mobile-money cash-out), so operator flow never dead-ends.
   async refundPayment(paymentId: string, reason = "operator refund"): Promise<Transfer> {
-    const t = this.store.getByPayment(paymentId);
+    const t = this.resolvePayment(paymentId);
     if (t.status === "REFUNDED") return t;
     const corridor = getCorridor(t.corridorId);
     const adapter = this.registry.resolve(corridor.sourceCountry, corridor.sourceRail, corridor.mode);
-    const res = await adapter.refundPayment(paymentId);
+    const res = await adapter.refundPayment(t.paymentId);
     if (!res.refunded) {
       const caps = adapter.capabilities();
       if (caps.manualVerification) {
@@ -236,7 +262,7 @@ export class TransferService {
   }
 
   get(id: string): Transfer {
-    return this.store.getTransfer(id);
+    return this.resolveTransfer(id);
   }
 
   getByShareToken(tokenOrReference: string): Transfer {
@@ -250,7 +276,7 @@ export class TransferService {
 
   // Clean handoff receipt for judges/frontend: African rail + Pollar + mocked BOB.
   getHandoff(transferId: string) {
-    const t = this.store.getTransfer(transferId);
+    const t = this.resolveTransfer(transferId);
     const corridor = getCorridor(t.corridorId);
     if (!t.pollarWallet || !t.pollarTxHash) throw new Error("Transfer not yet settled to Pollar");
     return buildHandoffReceipt({
