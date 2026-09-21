@@ -7,7 +7,16 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/send" },
-    { "source": "/(.*)", "destination": "/api/send" }
-  ]
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/send"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/send"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": true
+  }
 }
