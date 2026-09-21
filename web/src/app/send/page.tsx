@@ -107,23 +107,26 @@ function SendPageContent() {
 
   // Handle URL query presets
   useEffect(() => {
-    const qCountry = searchParams.get("country");
-    const qAmount = searchParams.get("amount");
-    if (qCountry === "GH") {
-      setSourceCountry("Ghana");
-      setSourceCurrency("GHS");
-      setSourceAmount(qAmount || "1500");
-    } else if (qCountry === "KE") {
-      setSourceCountry("Kenya");
-      setSourceCurrency("KES");
-      setSourceAmount(qAmount || "10000");
-    } else if (qCountry === "ZA") {
-      setSourceCountry("South Africa");
-      setSourceCurrency("ZAR");
-      setSourceAmount(qAmount || "3000");
-    } else if (qAmount) {
-      setSourceAmount(qAmount);
-    }
+    const timeout = window.setTimeout(() => {
+      const qCountry = searchParams.get("country");
+      const qAmount = searchParams.get("amount");
+      if (qCountry === "GH") {
+        setSourceCountry("Ghana");
+        setSourceCurrency("GHS");
+        setSourceAmount(qAmount || "1500");
+      } else if (qCountry === "KE") {
+        setSourceCountry("Kenya");
+        setSourceCurrency("KES");
+        setSourceAmount(qAmount || "10000");
+      } else if (qCountry === "ZA") {
+        setSourceCountry("South Africa");
+        setSourceCurrency("ZAR");
+        setSourceAmount(qAmount || "3000");
+      } else if (qAmount) {
+        setSourceAmount(qAmount);
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [searchParams]);
 
   // Load corridors and providers
