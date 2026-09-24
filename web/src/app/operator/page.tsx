@@ -56,13 +56,8 @@ export default function OperatorOverviewPage() {
     return () => window.clearTimeout(timeout);
   }, [fetchOverview]);
 
-  // Compute metrics specified in Section 5:
-  // Pending local payments: 12 (or dynamic based on db)
-  // Under review: 4
-  // USDC settlements pending: 3
-  // Failed transfers: 1
-  // Active corridors: 4
-  // Healthy providers: 7 / 8
+  // Metrics are derived only from the current backend response.
+  // Never invent non-zero fallback values: zero is a valid operational state.
   const pendingPayments = transfers.filter((t) => t.status === "PAYMENT_DETECTED").length;
   const underReview = transfers.filter((t) => t.status === "IN_REVIEW").length;
   const settlementsPending = transfers.filter(
@@ -117,7 +112,7 @@ export default function OperatorOverviewPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <Stat
             label="Pending local payments"
-            value={String(Math.max(pendingPayments, 1))}
+            value={loading ? "—" : String(pendingPayments)}
             hint="Needs verification"
             tone="amber"
             spark={sparkFor((t) => t.status === "PAYMENT_DETECTED")}
@@ -125,7 +120,7 @@ export default function OperatorOverviewPage() {
           />
           <Stat
             label="Under review"
-            value={String(Math.max(underReview, 1))}
+            value={loading ? "—" : String(underReview)}
             hint="Awaiting docs"
             tone="violet"
             spark={sparkFor((t) => t.status === "IN_REVIEW")}
@@ -133,28 +128,28 @@ export default function OperatorOverviewPage() {
           />
           <Stat
             label="USDC settlements pending"
-            value={String(Math.max(settlementsPending, 1))}
+            value={loading ? "—" : String(settlementsPending)}
             hint="Awaiting local clear"
             tone="slate"
             spark={sparkFor((t) => t.status === "PAYMENT_DETECTED" || t.status === "IN_REVIEW")}
           />
           <Stat
             label="Failed transfers"
-            value={String(failedTransfers)}
+            value={loading ? "—" : String(failedTransfers)}
             hint="Zero tolerance"
             tone="rose"
             spark={sparkFor((t) => t.status === "REJECTED")}
           />
           <Stat
             label="Active corridors"
-            value={String(corridorsList.length > 0 ? activeCorridorsCount : 4)}
+            value={loading ? "—" : String(activeCorridorsCount)}
             hint="Africa → Bolivia"
             tone="emerald"
             href="/operator/corridors"
           />
           <Stat
             label="Healthy providers"
-            value={providersList.length > 0 ? `${healthyProvidersCount} / ${providersList.length}` : "4 / 5"}
+            value={loading ? "—" : `${healthyProvidersCount} / ${providersList.length}`}
             hint="Adapters active"
             tone="emerald"
             href="/operator/providers"
