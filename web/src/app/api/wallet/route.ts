@@ -5,11 +5,14 @@ import { backendTransferToUi } from "@/lib/adapters";
 export const dynamic = "force-dynamic";
 
 const DEMO_WALLET = {
-  id: "primary_pollar_wallet",
+  id: "sandbox_demo_wallet",
   address: "GDQP2KPQGKIHYJGXNURG74YTI5FD5CJXNURG74YTI5FD5C",
   usdcBalance: "1850.4500",
   xlmBalance: "48.2000",
   network: "Stellar Testnet",
+  mode: "sandbox",
+  simulated: true,
+  note: "Demo-only balance and address. Use the Pollar SDK card for live testnet wallet activity.",
 };
 
 export async function GET() {
@@ -22,7 +25,7 @@ export async function GET() {
     const history = transfers.map((t) => backendTransferToUi(t, corridors));
     return NextResponse.json({
       success: true,
-      wallet: { ...DEMO_WALLET, network: `Stellar ${health.pollarEnv === "live" ? "Mainnet" : "Testnet"}` },
+      wallet: { ...DEMO_WALLET, network: `Stellar ${health.pollarEnv === "live" ? "Mainnet" : "Testnet"} (sandbox demo)` },
       history,
     });
   } catch (error) {
@@ -42,7 +45,8 @@ export async function POST(request: Request) {
     if (body.action === "FAUCET") {
       return NextResponse.json({
         success: true,
-        message: "Sandbox faucet: +250.00 USDC would be dispatched on Stellar Testnet (demo only).",
+        simulated: true,
+        message: "Simulation only: no faucet transaction was submitted on-chain.",
         newBalance: DEMO_WALLET.usdcBalance,
       });
     }
@@ -55,8 +59,9 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         txHash,
+        simulated: true,
         newBalance: DEMO_WALLET.usdcBalance,
-        message: `Sandbox demo: ${sendAmount} USDC send simulated (no on-chain dispatch).`,
+        message: `Simulation only: ${sendAmount} USDC was not submitted on-chain.`,
       });
     }
     return NextResponse.json({ success: false, error: "Unknown action" }, { status: 400 });
