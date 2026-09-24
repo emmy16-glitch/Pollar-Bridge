@@ -242,12 +242,13 @@ export async function fetchPollarRampsQuote(corridorId: string): Promise<{ rate:
 }
 
 export async function settleUsdc(wallet: string, amountUsdc: number): Promise<PollarSettlement> {
-  // Real USDC movement happens in the frontend via @pollar/react sponsored tx
-  // (runTx('payment', ...)) once the wallet is funded. Backend records + reconciles.
-  // We still return a Stellar-style hash so the demo timeline looks exactly
-  // like testnet explorer output.
+  // IMPORTANT: this backend does not submit the recipient USDC payment itself.
+  // The actual on-chain payment is owned by the browser @pollar/react flow.
+  // Until a verified transaction hash is supplied by that flow, the backend
+  // must report this settlement as a simulation even when Pollar API keys are
+  // configured. A configured API key proves API access, not an on-chain payment.
   const env = pollarEnvValue();
-  return { wallet, amountUsdc, env, txHash: stellarMockHash(), mode: pollarMode() };
+  return { wallet, amountUsdc, env, txHash: stellarMockHash(), mode: "mock" };
 }
 
 export async function submitPollarTransfer(txHash: string): Promise<{ confirmed: boolean; payoutRef: string }> {
