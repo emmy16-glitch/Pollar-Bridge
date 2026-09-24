@@ -59,11 +59,11 @@ export default function OperatorOverviewPage() {
   // Metrics are derived only from the current backend response.
   // Never invent non-zero fallback values: zero is a valid operational state.
   const pendingPayments = transfers.filter((t) => t.status === "PAYMENT_DETECTED").length;
-  const underReview = transfers.filter((t) => t.status === "PAYMENT_UNDER_REVIEW").length;
+  const underReview = transfers.filter((t) => t.status === "IN_REVIEW").length;
   const settlementsPending = transfers.filter(
-    (t) => t.status === "PAYMENT_DETECTED" || t.status === "PAYMENT_UNDER_REVIEW"
+    (t) => t.status === "PAYMENT_DETECTED" || t.status === "IN_REVIEW"
   ).length;
-  const failedTransfers = transfers.filter((t) => t.status === "PAYMENT_REJECTED").length;
+  const failedTransfers = transfers.filter((t) => t.status === "REJECTED").length;
   const activeCorridorsCount = corridorsList.filter((c) => c.status === "ACTIVE").length;
   const healthyProvidersCount = providersList.filter((p) => p.status === "Healthy").length;
 
@@ -123,7 +123,7 @@ export default function OperatorOverviewPage() {
             value={loading ? "—" : String(underReview)}
             hint="Awaiting docs"
             tone="violet"
-            spark={sparkFor((t) => t.status === "PAYMENT_UNDER_REVIEW")}
+            spark={sparkFor((t) => t.status === "IN_REVIEW")}
             href="/operator/queue?filter=IN_REVIEW"
           />
           <Stat
@@ -131,14 +131,14 @@ export default function OperatorOverviewPage() {
             value={loading ? "—" : String(settlementsPending)}
             hint="Awaiting local clear"
             tone="slate"
-            spark={sparkFor((t) => t.status === "PAYMENT_DETECTED" || t.status === "PAYMENT_UNDER_REVIEW")}
+            spark={sparkFor((t) => t.status === "PAYMENT_DETECTED" || t.status === "IN_REVIEW")}
           />
           <Stat
             label="Failed transfers"
             value={loading ? "—" : String(failedTransfers)}
             hint="Zero tolerance"
             tone="rose"
-            spark={sparkFor((t) => t.status === "PAYMENT_REJECTED")}
+            spark={sparkFor((t) => t.status === "REJECTED")}
           />
           <Stat
             label="Active corridors"
