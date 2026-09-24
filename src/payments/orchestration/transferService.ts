@@ -201,11 +201,18 @@ export class TransferService {
       const wallet = t.recipientWalletAddress ?? await ensureWallet(t.transferId);
       // Deferred funding trigger: African verification approves the Pollar wallet.
       const fund = await fundDeferredWallet(wallet);
-      stamp(t, "USDC_SETTLED_TO_POLLAR", `wallet=${wallet} fund=${fund.mode}`);
+      if (fund.mode === "real" && !fund.funded) {
+        throw new Error("Pollar deferred wallet funding failed");
+      }
       const s = await settleUsdc(wallet, t.settlementAmount);
       t.pollarWallet = s.wallet;
       t.pollarTxHash = s.txHash;
       t.pollarMode = s.mode;
+      stamp(
+        t,
+        "USDC_SETTLED_TO_POLLAR",
+        `wallet=${wallet} funding=${fund.mode} settlement=${s.mode}`,
+      );
       stamp(t, "POLLAR_TRANSFER_SUBMITTED", s.txHash);
       const sub = await submitPollarTransfer(s.txHash);
       if (!sub.confirmed) {
