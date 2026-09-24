@@ -71,7 +71,7 @@ export default function WalletPage() {
       const data = await res.json();
       if (data.success) {
         await fetchWallet();
-        alert("Faucet credited +250.00 USDC to Stellar Testnet wallet!");
+        alert("Simulation only: no faucet transaction was submitted on-chain.");
       }
     } catch {
       alert("Faucet failed");
@@ -98,7 +98,7 @@ export default function WalletPage() {
       if (data.success) {
         setShowSendModal(false);
         await fetchWallet();
-        alert(`Dispatched ${sendAmount} USDC on Stellar Testnet! Tx: ${data.txHash.slice(0, 16)}...`);
+        alert(`Simulation only: ${sendAmount} USDC was not submitted on-chain. Demo reference: ${data.txHash.slice(0, 16)}...`);
       } else {
         alert(data.error || "Send failed");
       }
@@ -117,11 +117,11 @@ export default function WalletPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-mono mb-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              STELLAR TESTNET
+              SANDBOX DEMO WALLET
             </div>
             <h1 className="text-3xl font-extrabold text-white">Pollar Wallet</h1>
             <p className="text-xs text-slate-400">
-              Primary Stellar testnet wallet integration for Pollar settlement and cross-border disbursements.
+              Demo wallet state for the hackathon UI. Balances and demo send/faucet actions below are simulated; use the Pollar SDK card for actual testnet wallet activity.
             </p>
           </div>
 
@@ -132,7 +132,7 @@ export default function WalletPage() {
               className="px-3.5 py-2 rounded-xl bg-violet-950/80 hover:bg-violet-900 border border-violet-500/40 text-violet-200 text-xs font-mono flex items-center gap-2 transition-colors disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-              <span>+250 USDC Testnet Faucet</span>
+              <span>+250 USDC Demo Faucet</span>
             </button>
 
             <button
@@ -143,6 +143,10 @@ export default function WalletPage() {
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+          <strong>Demo boundary:</strong> the balance card and its Send/Faucet buttons are simulations. They do not prove an on-chain Stellar transaction. The Pollar SDK wallet card below is the live testnet surface when a publishable key is configured.
         </div>
 
         {/* Primary Wallet Balance Card */}
@@ -157,7 +161,7 @@ export default function WalletPage() {
                 <span className="text-emerald-400 text-2xl sm:text-3xl">USDC</span>
               </div>
               <div className="text-xs font-mono text-slate-400 mt-1 flex items-center gap-3">
-                <span>Network: <strong className="text-violet-300">Stellar Testnet</strong></span>
+                <span>Network: <strong className="text-violet-300">Stellar Testnet · simulated balance</strong></span>
                 <span>·</span>
                 <span>Reserve: <strong className="text-slate-300">{wallet?.xlmBalance || "48.20"} XLM</strong></span>
               </div>
